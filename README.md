@@ -1,13 +1,6 @@
-# EdgeTranslate-Clean
+# EdgeTranslate-V3
 
 > **🔗 Forked from [EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)**
->
-> This is a cleaned-up version of the original EdgeTranslate browser extension with the following modifications:
-> - ❌ Removed PDF translation functionality (reduced extension size significantly)
-> - ❌ Removed non-functional Baidu and Tencent translators
-> - ✅ Set Google Translate as the default translator
-> - ✅ Streamlined codebase for better performance
-> - ✅ All original functionality remains intact except for the removed features
 >
 > **Original Repository:** https://github.com/EdgeTranslate/EdgeTranslate  
 > **Original Authors:** Edge Translate Team  
