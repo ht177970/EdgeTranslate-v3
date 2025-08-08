@@ -207,11 +207,10 @@ This project is a fork of the original [EdgeTranslate](https://github.com/EdgeTr
 
 ### Modifications in This Fork
 This fork includes the following changes from the original:
-- Removed PDF translation functionality to reduce extension size
-- Removed non-functional Baidu and Tencent translator services  
-- Set Google Translate as the default translator
-- Cleaned up codebase and dependencies
-- Maintained all other original functionality
+-Set Google Translate as the default.
+-Code refactoring for Manifest V3 compatibility.
+-Removed non-functional Baidu and Tencent translation providers.
+-Removed the PDF viewer feature (to be re-added in a future update).
 
 ### License Compliance
 This fork is distributed under the same MIT AND NPL licenses as the original project. All original copyright notices and license files have been preserved. The MIT License allows modification and redistribution with proper attribution, which is provided here.
