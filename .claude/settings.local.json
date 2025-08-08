@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run format:*)",
+      "Bash(mv:*)",
+      "Bash(npm run pack:chrome:*)",
+      "Bash(yarn --version)",
+      "Bash(yarn install)",
+      "Bash(yarn build)",
+      "Bash(yarn run build:*)",
+      "Bash(grep:*)",
+      "Bash(npx prettier:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(curl:*)",
+      "Bash(unzip:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(gulp pack:*)",
+      "Bash(open:*)"
+    ],
+    "deny": []
+  }
+}
