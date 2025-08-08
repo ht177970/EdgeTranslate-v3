@@ -1,6 +1,17 @@
-# Edge Translate
+# EdgeTranslate-Clean
 
-[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
+> **🔗 Forked from [EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)**
+>
+> This is a cleaned-up version of the original EdgeTranslate browser extension with the following modifications:
+> - ❌ Removed PDF translation functionality (reduced extension size significantly)
+> - ❌ Removed non-functional Baidu and Tencent translators
+> - ✅ Set Google Translate as the default translator
+> - ✅ Streamlined codebase for better performance
+> - ✅ All original functionality remains intact except for the removed features
+>
+> **Original Repository:** https://github.com/EdgeTranslate/EdgeTranslate  
+> **Original Authors:** Edge Translate Team  
+> **License:** MIT AND NPL
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/LICENSE.MIT)
 [![License](<https://img.shields.io/badge/License-NPL%20(The%20996%20Prohibited%20License)-blue.svg>)](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/LICENSE.NPL)
@@ -189,3 +200,28 @@ If you want to help localize Edge Translate, please read the following guide.
 It took us much time and energy to develop this project. If it truly helped you in some way, you could reward us with cans of Coke to support us to keep improving it: [PayPal](https://paypal.me/EdgeTranslate).
 
 But, this is completely **voluntary**. Sponsoring won't bring any special treatment and you can still use Edge Translate freely without sponsoring. Do it according to your capability!
+
+---
+
+## Credits and Attribution
+
+This project is a fork of the original [EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate) created by the Edge Translate Team.
+
+### Original Project
+- **Repository:** https://github.com/EdgeTranslate/EdgeTranslate
+- **Authors:** Edge Translate Team and all contributors
+- **License:** MIT AND NPL (The 996 Prohibited License)
+
+### Modifications in This Fork
+This fork includes the following changes from the original:
+- Removed PDF translation functionality to reduce extension size
+- Removed non-functional Baidu and Tencent translator services  
+- Set Google Translate as the default translator
+- Cleaned up codebase and dependencies
+- Maintained all other original functionality
+
+### License Compliance
+This fork is distributed under the same MIT AND NPL licenses as the original project. All original copyright notices and license files have been preserved. The MIT License allows modification and redistribution with proper attribution, which is provided here.
+
+### Acknowledgments
+Special thanks to all the original contributors of EdgeTranslate who made this project possible. This cleaned-up version builds upon their excellent work.
