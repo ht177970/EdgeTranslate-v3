@@ -40,6 +40,10 @@ module.exports = {
     },
     resolve: {
         alias: {
+            "@edge_translate/translators": path.resolve(
+                __dirname,
+                "../../translators/dist/translators.es.js"
+            ),
             "@": path.resolve(__dirname, "../src"),
             common: path.resolve(__dirname, "../src/common"),
             react: "preact/compat",

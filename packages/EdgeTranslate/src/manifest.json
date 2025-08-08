@@ -90,7 +90,8 @@
         "scripting",
         "contextMenus",
         "storage",
-        "tabs",
+      "tabs",
+      "webNavigation",
         "declarativeNetRequest",
         "notifications"
     ],

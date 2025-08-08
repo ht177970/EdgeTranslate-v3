@@ -1,0 +1,92 @@
+/* EdgeTranslate PDF 뷰어 커스텀 테마
+   - 번역 패널 UI와 톤을 맞춘 미니멀/세련된 다크-라이트 혼합
+*/
+
+:root {
+  --et-accent: #4f8cff;
+  --et-bg: #101317;
+  --et-elev: #171b21;
+  --et-text: #e6ebf1;
+  --et-muted: #9aa6b2;
+  --et-border: #2a2f37;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --et-bg: #f6f8fb;
+    --et-elev: #ffffff;
+    --et-text: #1a1f24;
+    --et-muted: #5b6672;
+    --et-border: #e6e9ef;
+  }
+}
+
+html, body {
+  background: var(--et-bg) !important;
+  color: var(--et-text) !important;
+}
+
+#outerContainer .toolbar,
+#secondaryToolbar,
+#findbar,
+#editorUndoBar,
+#dialogContainer dialog {
+  background: var(--et-elev) !important;
+  color: var(--et-text) !important;
+  border-color: var(--et-border) !important;
+}
+
+.toolbar button.toolbarButton,
+#secondaryToolbar .toolbarButton,
+.dialogButtonsGroup button,
+.primaryButton,
+.secondaryButton {
+  background: transparent;
+  color: var(--et-text);
+  border: 1px solid var(--et-border);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.toolbar button.toolbarButton:hover,
+#secondaryToolbar .toolbarButton:hover,
+.dialogButtonsGroup button:hover {
+  border-color: var(--et-accent);
+}
+
+.primaryButton {
+  background: var(--et-accent);
+  border-color: var(--et-accent);
+  color: white;
+}
+
+.toolbarField, input[type="number"], input[type="text"], textarea, select {
+  background: transparent !important;
+  border: 1px solid var(--et-border) !important;
+  color: var(--et-text) !important;
+  border-radius: 10px !important;
+}
+
+#sidebarContainer {
+  border-right: 1px solid var(--et-border) !important;
+}
+
+.verticalToolbarSeparator,
+.horizontalToolbarSeparator {
+  background: var(--et-border) !important;
+}
+
+.progress .glimmer {
+  background: linear-gradient(90deg, transparent, rgba(79,140,255,0.35), transparent) !important;
+}
+
+#viewer .textLayer span::selection {
+  background: rgba(79,140,255,0.35) !important;
+}
+
+/* 스크롤바 */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--et-border); border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #3a4150; }
+
+

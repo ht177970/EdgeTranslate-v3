@@ -238,7 +238,19 @@ function packStatic() {
         let staticOtherFiles = gulp
             .src("./static/**/!(*.js)", { base: "static" })
             .pipe(gulp.dest(output_dir));
-        return mergeStream([staticJSFiles, googleJS, staticOtherFiles]);
+
+        // pdf.js viewer assets under ./web/**
+        let webAssets = gulp.src(["./web/**"], { base: "." }).pipe(gulp.dest(output_dir));
+
+        // pdf.js core files to build/ (sibling to web/), mirroring official layout
+        let pdfjsCore = gulp
+            .src([
+                "../../node_modules/pdfjs-dist/build/pdf.mjs",
+                "../../node_modules/pdfjs-dist/build/pdf.worker.mjs",
+            ], { base: "../../node_modules/pdfjs-dist" })
+            .pipe(gulp.dest(`${output_dir}build/`));
+
+        return mergeStream([staticJSFiles, googleJS, staticOtherFiles, webAssets, pdfjsCore]);
     }
     // static JS files except google JS
     let staticJSFiles = gulp
@@ -256,7 +268,19 @@ function packStatic() {
     let staticOtherFiles = gulp
         .src("./static/**/!(*.js)", { base: "static" })
         .pipe(gulp.dest(output_dir));
-    return mergeStream([staticJSFiles, googleJS, staticOtherFiles]);
+
+    // pdf.js viewer assets under ./web/**
+    let webAssets = gulp.src(["./web/**"], { base: "." }).pipe(gulp.dest(output_dir));
+
+    // pdf.js core files to build/
+    let pdfjsCore = gulp
+        .src([
+            "../../node_modules/pdfjs-dist/build/pdf.mjs",
+            "../../node_modules/pdfjs-dist/build/pdf.worker.mjs",
+        ], { base: "../../node_modules/pdfjs-dist" })
+        .pipe(gulp.dest(`${output_dir}build/`));
+
+    return mergeStream([staticJSFiles, googleJS, staticOtherFiles, webAssets, pdfjsCore]);
 }
 /**
  * End private tasks' definition

@@ -57,6 +57,36 @@ chrome.runtime.onSuspend.addListener(() => {
 });
 
 /**
+ * PDF 내비게이션 가로채기: chrome 기본 PDF 뷰어 대신 내장 PDF.js 뷰어로 열기
+ * - MV3 service worker에서 webNavigation.onCommitted 사용
+ */
+try {
+    chrome.webNavigation.onCommitted.addListener(async (details) => {
+        // main_frame 만 처리, chrome://, edge:// 등은 제외
+        if (details.frameId !== 0 || !details.url) return;
+        const url = details.url;
+        if (!/^https?:|^file:|^ftp:/i.test(url)) return;
+
+        // PDF 판별: 확장자 또는 MIME 힌트 파라미터
+        const isPdf = /\.pdf($|[?#])/i.test(url);
+        if (!isPdf) return;
+
+        // 확장 뷰어 URL 구성: web/viewer.html?file=<encoded>
+        // cross-origin 파일을 viewer가 fetch->blob으로 열 수 있게 file 파라미터만 전달
+        const viewerUrl = chrome.runtime.getURL(`web/viewer.html?file=${encodeURIComponent(url)}`);
+
+        // 탭 업데이트로 리디렉션
+        try {
+            await chrome.tabs.update(details.tabId, { url: viewerUrl });
+        } catch (e) {
+            console.warn("[EdgeTranslate] PDF redirect failed", e);
+        }
+    });
+} catch (e) {
+    console.warn("[EdgeTranslate] webNavigation unavailable", e);
+}
+
+/**
  * 전역 에러 및 Promise Rejection 핸들러
  */
 if (typeof window !== "undefined") {
