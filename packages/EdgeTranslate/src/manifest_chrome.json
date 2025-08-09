@@ -32,6 +32,6 @@
             "all_frames": true
         }
     ],
-    "minimum_chrome_version": "55",
+    "minimum_chrome_version": "88",
     "homepage_url": "https://github.com/EdgeTranslate/EdgeTranslate/wiki"
 }
