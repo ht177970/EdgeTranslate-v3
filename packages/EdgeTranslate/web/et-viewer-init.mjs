@@ -6,6 +6,24 @@ if (!globalThis.pdfjsLib) {
   globalThis.pdfjsLib = PDFJS;
 }
 
+// Soften noisy runtime errors coming from icon downloads in some environments
+try {
+  // Filter a known, harmless rejection thrown by icon preloads
+  window.addEventListener('unhandledrejection', (event) => {
+    const msg = String(event.reason && (event.reason.message || event.reason))
+    if (msg && msg.includes('Unable to download all specified images')) {
+      event.preventDefault();
+    }
+  });
+  // Optional: suppress console error spam for the same case
+  const origErr = console.error;
+  console.error = function (...args) {
+    const text = args.map((v) => (typeof v === 'string' ? v : (v && v.message) || '')).join(' ');
+    if (text && text.includes('Unable to download all specified images')) return;
+    return origErr.apply(this, args);
+  };
+} catch {}
+
 try {
   PDFJS.GlobalWorkerOptions.workerSrc = '../build/build/pdf.worker.mjs';
 } catch {}

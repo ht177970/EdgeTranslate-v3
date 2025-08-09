@@ -7,6 +7,7 @@ import {
     updateBLackListMenu,
 } from "./library/blacklist.js";
 import { sendHitRequest } from "./library/analytics.js";
+import { wrapConsoleForFiltering, logWarn, logInfo } from "common/scripts/logger.js";
 import { promiseTabs } from "common/scripts/promise.js";
 import Channel from "common/scripts/channel.js";
 // map language abbreviation from browser languages to translation languages
@@ -37,23 +38,17 @@ function shouldFilterError(message) {
     );
 }
 
-const originalConsoleError = console.error;
-console.error = function (...args) {
-    const message = args.join(" ");
-    if (!shouldFilterError(message)) {
-        originalConsoleError.apply(console, args);
-    }
-};
+wrapConsoleForFiltering();
 
 /**
  * Chrome Runtime 오류 처리
  */
 chrome.runtime.onStartup.addListener(() => {
-    console.log("[EdgeTranslate] Extension startup");
+    logInfo("Extension startup");
 });
 
 chrome.runtime.onSuspend.addListener(() => {
-    console.log("[EdgeTranslate] Extension suspended");
+    logInfo("Extension suspended");
 });
 
 /**
@@ -79,11 +74,11 @@ try {
         try {
             await chrome.tabs.update(details.tabId, { url: viewerUrl });
         } catch (e) {
-            console.warn("[EdgeTranslate] PDF redirect failed", e);
+            logWarn("PDF redirect failed", e);
         }
     });
 } catch (e) {
-    console.warn("[EdgeTranslate] webNavigation unavailable", e);
+    logWarn("webNavigation unavailable", e);
 }
 
 /**
@@ -104,7 +99,7 @@ if (typeof window !== "undefined") {
                     ? event.reason
                     : event.reason.message || event.reason.toString() || "";
             if (shouldFilterError(message)) {
-                console.warn("[EdgeTranslate] 필터링된 Promise rejection:", message);
+                logWarn("필터링된 Promise rejection:", message);
                 event.preventDefault();
                 return false;
             }
@@ -808,7 +803,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
             // 告知用户数据收集相关信息
             chrome.notifications.create("data_collection_notification", {
                 type: "basic",
-                iconUrl: "./icon/icon128.png",
+                iconUrl: chrome.runtime.getURL("icon/icon128.png"),
                 title: chrome.i18n.getMessage("AppName"),
                 message: chrome.i18n.getMessage("DataCollectionNotice"),
             });
@@ -850,7 +845,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
             // 从旧版本更新，引导用户查看更新日志
             chrome.notifications.create("update_notification", {
                 type: "basic",
-                iconUrl: "./icon/icon128.png",
+                iconUrl: chrome.runtime.getURL("icon/icon128.png"),
                 title: chrome.i18n.getMessage("AppName"),
                 message: chrome.i18n.getMessage("ExtensionUpdated"),
             });
@@ -1050,7 +1045,7 @@ if (typeof self !== "undefined" && self.addEventListener) {
     self.addEventListener("unhandledrejection", (event) => {
         const message = event.reason?.message || event.reason?.toString() || "";
         if (shouldFilterError(message)) {
-            console.warn("[EdgeTranslate] Service Worker에서 필터링된 Promise rejection:", message);
+            logWarn("Service Worker에서 필터링된 Promise rejection:", message);
             event.preventDefault();
         }
     });
@@ -1059,7 +1054,7 @@ if (typeof self !== "undefined" && self.addEventListener) {
     self.addEventListener("error", (event) => {
         const message = event.error?.message || event.message || "";
         if (shouldFilterError(message)) {
-            console.warn("[EdgeTranslate] Service Worker에서 필터링된 오류:", message);
+            logWarn("Service Worker에서 필터링된 오류:", message);
             event.preventDefault();
         }
     });

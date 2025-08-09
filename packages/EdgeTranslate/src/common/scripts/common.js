@@ -1,4 +1,5 @@
 export { getDomain, log };
+import { logInfo } from "./logger.js";
 
 /**
  * 提取给定的url的域名
@@ -22,8 +23,7 @@ function getDomain(url) {
  * @param {Any} message message to log.
  */
 function log(message) {
-    // eslint-disable-next-line no-console
-    console.log(message);
+    logInfo(message);
 }
 
 /**

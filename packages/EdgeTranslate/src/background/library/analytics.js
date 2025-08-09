@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, getOrSetDefaultSettings } from "common/scripts/settings.js";
+import { logWarn } from "common/scripts/logger.js";
 
 export { sendHitRequest };
 
@@ -19,8 +20,8 @@ function sendHitRequest(page, type, extraHitData) {
         typeof document !== "undefined" && document.location
             ? document.location.origin + document.location.pathname + document.location.search
             : "chrome-extension://service-worker";
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useGoogleAnalytics(() => {
+    // 사용자 동의 시에만 전송
+    withGoogleAnalytics(() => {
         getUUID((UUID) => {
             // establish basic hit data(payload)
             let hitData = {
@@ -48,10 +49,7 @@ function sendHitRequest(page, type, extraHitData) {
                     },
                     body: generateURLRequest(hitData),
                 }).catch((error) => {
-                    console.warn(
-                        "[EdgeTranslate] Analytics 요청 실패 (Service Worker 환경):",
-                        error
-                    );
+                    logWarn("Analytics 요청 실패 (Service Worker 환경):", error);
                 });
             } else {
                 // 일반 환경에서는 XMLHttpRequest 사용
@@ -69,20 +67,22 @@ function sendHitRequest(page, type, extraHitData) {
  * @returns {string} generated url
  */
 function generateURLRequest(requestData) {
-    let url = "";
-    if (requestData) {
-        for (let key in requestData) {
-            url += `${key}=${requestData[key]}&`;
-        }
+    if (!requestData) return "";
+    const parts = [];
+    for (let key in requestData) {
+        if (!Object.prototype.hasOwnProperty.call(requestData, key)) continue;
+        const k = encodeURIComponent(key);
+        const v = encodeURIComponent(String(requestData[key]));
+        parts.push(`${k}=${v}`);
     }
-    return url;
-}
+    return parts.join("&");
+ }
 
 /**
  *
  * @param {function} callback the callback function executed when the result of settings is ready and value of UseGoogleAnalytics is true
  */
-function useGoogleAnalytics(callback) {
+function withGoogleAnalytics(callback) {
     getOrSetDefaultSettings("OtherSettings", DEFAULT_SETTINGS).then((result) => {
         if (result.OtherSettings.UseGoogleAnalytics) callback();
     });

@@ -1,6 +1,7 @@
 /** @jsx h */
 import { h, render } from "preact";
 import Panel from "./Panel.jsx";
+import { wrapConsoleForFiltering } from "common/scripts/logger.js";
 
 /**
  * Content Script 오류 필터링
@@ -25,13 +26,7 @@ function shouldFilterError(message) {
     );
 }
 
-const originalConsoleError = console.error;
-console.error = function (...args) {
-    const message = args.join(" ");
-    if (!shouldFilterError(message)) {
-        originalConsoleError.apply(console, args);
-    }
-};
+wrapConsoleForFiltering();
 
 // 전역 오류 핸들러 추가
 window.addEventListener("error", (event) => {

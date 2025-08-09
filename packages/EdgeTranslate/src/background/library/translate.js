@@ -1,5 +1,6 @@
 import { HybridTranslator } from "@edge_translate/translators";
-import { log } from "common/scripts/common.js";
+// common.log는 현재 파일에서 직접 사용하지 않습니다.
+import { logWarn } from "common/scripts/logger.js";
 import { promiseTabs, delayPromise } from "common/scripts/promise.js";
 import { DEFAULT_SETTINGS, getOrSetDefaultSettings } from "common/scripts/settings.js";
 
@@ -478,7 +479,7 @@ function executeGoogleScript(channel) {
                     });
                 })
                 .catch((error) => {
-                    log(`Chrome scripting error: ${error}`);
+                    logWarn(`Chrome scripting error: ${error}`);
                 });
         }
     });
