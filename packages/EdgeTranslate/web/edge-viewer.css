@@ -96,6 +96,19 @@ html[data-theme="dark"] {
   --et-text: #e6ebf1;
   --et-muted: #9aa6b2;
   --et-border: #2a2f37;
+
+  /* Bridge PDF.js variables to our palette */
+  --toolbar-bg-color: var(--et-elev);
+  --doorhanger-bg-color: var(--et-elev);
+  --doorhanger-separator-color: var(--et-border);
+  --menu-bg-color: var(--et-elev);
+  --menuitem-fg-color: var(--et-text);
+  --menuitem-hover-bg-color: rgba(79, 140, 255, 0.15);
+  --menu-button-border-color: var(--et-border);
+  --menu-button-focus-outline-color: var(--et-accent);
+  --separator-color: var(--et-border);
+  --dialog-button-bg-color: rgba(255, 255, 255, 0.06);
+  --textarea-bg-color: var(--et-elev);
 }
 
 html[data-theme="light"] {
@@ -104,6 +117,19 @@ html[data-theme="light"] {
   --et-text: #1a1f24;
   --et-muted: #5b6672;
   --et-border: #e6e9ef;
+
+  /* Bridge PDF.js variables to our palette */
+  --toolbar-bg-color: var(--et-elev);
+  --doorhanger-bg-color: var(--et-elev);
+  --doorhanger-separator-color: var(--et-border);
+  --menu-bg-color: var(--et-elev);
+  --menuitem-fg-color: var(--et-text);
+  --menuitem-hover-bg-color: rgba(79, 140, 255, 0.08);
+  --menu-button-border-color: var(--et-border);
+  --menu-button-focus-outline-color: var(--et-accent);
+  --separator-color: var(--et-border);
+  --dialog-button-bg-color: rgba(0, 0, 0, 0.04);
+  --textarea-bg-color: var(--et-elev);
 }
 
 /* Optional: visual hint for toggled state */
@@ -122,6 +148,71 @@ html[data-theme="dark"] #etThemeToggle .icon-sun { display: none; }
 html[data-theme="dark"] #etThemeToggle .icon-moon { display: inline-flex; }
 html[data-theme="light"] #etThemeToggle .icon-sun { display: inline-flex; }
 html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
+
+/* PDF.js menus and doorhangers */
+html[data-theme] .doorHanger,
+html[data-theme] .doorHangerRight,
+html[data-theme] #secondaryToolbar,
+html[data-theme] #secondaryToolbar .menuContainer,
+html[data-theme] #secondaryToolbar.menu,
+html[data-theme] #secondaryToolbar menu,
+html[data-theme] #secondaryToolbar .toolbarButton.labeled,
+html[data-theme] .dialogButtonsGroup button,
+html[data-theme] .menuContainer button,
+html[data-theme] .menuContainer .menu,
+html[data-theme] #findbar {
+  background: var(--doorhanger-bg-color) !important;
+  color: var(--et-text) !important;
+  border-color: var(--doorhanger-separator-color) !important;
+}
+
+/* Menu button aesthetics */
+html[data-theme] #secondaryToolbar .menuContainer button,
+html[data-theme] .menuContainer button {
+  background-color: var(--menu-bg-color) !important;
+  color: var(--menuitem-fg-color) !important;
+  border: 1px solid var(--menu-button-border-color) !important;
+  border-radius: 8px !important;
+}
+
+html[data-theme] #secondaryToolbar .menuContainer button:hover,
+html[data-theme] .menuContainer button:hover {
+  background-color: var(--menuitem-hover-bg-color) !important;
+}
+
+/* Separators and outlines */
+html[data-theme] .verticalToolbarSeparator,
+html[data-theme] .horizontalToolbarSeparator,
+html[data-theme] #secondaryToolbar .horizontalToolbarSeparator {
+  background: var(--separator-color) !important;
+}
+
+/* Inputs inside dialogs/menus */
+html[data-theme] .toolbarField,
+html[data-theme] input[type="number"],
+html[data-theme] input[type="text"],
+html[data-theme] textarea,
+html[data-theme] select {
+  background: var(--textarea-bg-color) !important;
+  border: 1px solid var(--et-border) !important;
+  color: var(--et-text) !important;
+}
+
+/* Doorhanger arrow should match bg */
+html[data-theme] .doorHangerRight::after,
+html[data-theme] .doorHanger::after {
+  border-bottom-color: var(--doorhanger-bg-color) !important;
+}
+
+/* Findbar fine-tune */
+html[data-theme] #findbar .toolbarButton,
+html[data-theme] #findbar .toggle-button,
+html[data-theme] #findbar label,
+html[data-theme] #findbar span,
+html[data-theme] #findbar input {
+  color: var(--et-text) !important;
+}
+
 
 
 
