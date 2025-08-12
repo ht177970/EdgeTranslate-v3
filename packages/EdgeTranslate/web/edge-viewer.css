@@ -9,6 +9,7 @@
   --et-text: #e6ebf1;
   --et-muted: #9aa6b2;
   --et-border: #2a2f37;
+  --et-control-h: 32px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -46,6 +47,8 @@ html, body {
   border: 1px solid var(--et-border);
   border-radius: 10px;
   padding: 6px 10px;
+  height: var(--et-control-h);
+  line-height: calc(var(--et-control-h) - 12px);
 }
 
 .toolbar button.toolbarButton:hover,
@@ -212,6 +215,40 @@ html[data-theme] #findbar span,
 html[data-theme] #findbar input {
   color: var(--et-text) !important;
 }
+
+/* Center scale select: unify curvature and prevent overflow */
+#scaleSelectContainer {
+  border: 1px solid var(--et-border) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  height: var(--et-control-h);
+  display: inline-flex;
+  align-items: center;
+}
+
+#scaleSelectContainer select#scaleSelect {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
+  color: var(--et-text) !important;
+  border: none !important;
+  outline: none !important;
+  padding: 6px 28px 6px 10px !important;
+  height: 100% !important;
+}
+
+#scaleSelectContainer select#scaleSelect option {
+  background: var(--et-elev);
+  color: var(--et-text);
+}
+
+/* Ensure zoom buttons and select align visually */
+#toolbarViewerMiddle .toolbarHorizontalGroup > .toolbarButton,
+#toolbarViewerMiddle #scaleSelectContainer {
+  height: var(--et-control-h);
+}
+
 
 
 
