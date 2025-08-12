@@ -8013,6 +8013,10 @@ class PDFPrintService {
   useRenderedPage() {
     this.throwIfInactive();
     const img = document.createElement("img");
+    if (!this.scratchCanvas) {
+      // If print was cancelled and service destroyed, bail out gracefully
+      return;
+    }
     this.scratchCanvas.toBlob(blob => {
       img.src = URL.createObjectURL(blob);
     });
@@ -8050,8 +8054,8 @@ class PDFPrintService {
   }
   throwIfInactive() {
     if (!this.active) {
-      // Silently ignore when print gets cancelled/completed to avoid noisy console errors
-      return;
+      // Throw a cancellation signal that upstream handlers treat as benign
+      throw new RenderingCancelledException("Print cancelled", "print");
     }
   }
 }
