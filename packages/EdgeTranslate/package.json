@@ -5,15 +5,18 @@
     "scripts": {
         "test": "jest",
         "format": "eslint 'src/**/*.js' 'config/**/*.js' --fix",
-        "dev:chrome": "gulp dev --browser chrome",
-        "dev:firefox": "gulp dev --browser firefox",
-        "build:chrome": "gulp build --browser chrome",
-        "build:firefox": "gulp build --browser firefox",
-        "pack:chrome": "gulp pack --browser chrome",
-        "pack:firefox": "gulp pack --browser firefox",
+    "dev:chrome": "gulp dev --browser chrome",
+    "dev:firefox": "gulp dev --browser firefox",
+    "dev:safari": "gulp dev --browser safari",
+    "build:chrome": "gulp build --browser chrome",
+    "build:firefox": "gulp build --browser firefox",
+    "build:safari": "gulp build --browser safari",
+    "pack:chrome": "gulp pack --browser chrome",
+    "pack:firefox": "gulp pack --browser firefox",
+    "pack:safari": "gulp pack --browser safari",
         "e2e:chrome": "SELENIUM_BROWSER=chrome jest -i --config './test/e2e/jest/jest.config.js'",
         "e2e:firefox": "SELENIUM_BROWSER=firefox jest -i --config './test/e2e/jest/jest.config.js'",
-        "build": "node -e \"console.log('\\npacking package for chrome')\" && gulp pack --browser chrome && node -e \"console.log('\\npacking package for firefox')\" && gulp pack --browser firefox"
+    "build": "node -e \"console.log('\\npacking package for chrome')\" && gulp pack --browser chrome && node -e \"console.log('\\npacking package for firefox')\" && gulp pack --browser firefox && node -e \"console.log('\\npacking package for safari')\" && gulp pack --browser safari"
     },
     "devDependencies": {
         "@babel/core": "^7.17.7",

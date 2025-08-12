@@ -1,0 +1,630 @@
+/* EdgeTranslate PDF 뷰어 커스텀 테마
+   - 번역 패널 UI와 톤을 맞춘 미니멀/세련된 다크-라이트 혼합
+*/
+
+:root {
+  --et-accent: #4f8cff;
+  --et-bg: #101317;
+  --et-elev: #171b21;
+  --et-text: #e6ebf1;
+  --et-muted: #9aa6b2;
+  --et-border: #2a2f37;
+  --et-radius: 10px;
+  /* Aesthetic tweaks: One UI-like taller toolbar and larger icons */
+  --toolbar-height: 44px;
+  --toolbar-vertical-padding: 6px;
+  --icon-size: 18px;
+  --menu-item-height: 36px;
+  /* Align custom controls to PDF.js toolbar height */
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --et-bg: #f6f8fb;
+    --et-elev: #ffffff;
+    --et-text: #1a1f24;
+    --et-muted: #5b6672;
+    --et-border: #e6e9ef;
+  }
+}
+
+html, body {
+  background: var(--et-bg) !important;
+  color: var(--et-text) !important;
+}
+
+#outerContainer .toolbar,
+#secondaryToolbar,
+#findbar,
+#editorUndoBar,
+#dialogContainer dialog {
+  background: var(--et-elev) !important;
+  color: var(--et-text) !important;
+  border-color: var(--et-border) !important;
+}
+
+.toolbar button.toolbarButton,
+#secondaryToolbar .toolbarButton,
+.dialogButtonsGroup button,
+.primaryButton,
+.secondaryButton {
+  background: transparent;
+  color: var(--et-text);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius);
+  padding: 0 10px;
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding));
+  box-sizing: border-box;
+}
+
+.toolbar button.toolbarButton:hover,
+#secondaryToolbar .toolbarButton:hover,
+.dialogButtonsGroup button:hover {
+  border-color: var(--et-accent);
+}
+
+.primaryButton {
+  background: var(--et-accent);
+  border-color: var(--et-accent);
+  color: white;
+}
+
+.toolbarField, input[type="number"], input[type="text"], textarea, select {
+  background: transparent !important;
+  border: 1px solid var(--et-border) !important;
+  color: var(--et-text) !important;
+  border-radius: 10px !important;
+}
+
+#sidebarContainer {
+  border-right: 1px solid var(--et-border) !important;
+}
+
+.verticalToolbarSeparator,
+.horizontalToolbarSeparator {
+  background: var(--et-border) !important;
+}
+
+.progress .glimmer {
+  background: linear-gradient(90deg, transparent, rgba(79,140,255,0.35), transparent) !important;
+}
+
+#viewer .textLayer span::selection {
+  background: rgba(79,140,255,0.35) !important;
+}
+
+/* 스크롤바 */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--et-border); border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #3a4150; }
+
+/* Explicit theme overrides via attribute */
+html[data-theme="dark"] {
+  --et-bg: #101317;
+  --et-elev: #171b21;
+  --et-text: #e6ebf1;
+  --et-muted: #9aa6b2;
+  --et-border: #2a2f37;
+
+  /* Bridge PDF.js variables to our palette */
+  --toolbar-bg-color: var(--et-elev);
+  --doorhanger-bg-color: var(--et-elev);
+  --doorhanger-separator-color: var(--et-border);
+  --menu-bg-color: var(--et-elev);
+  --menuitem-fg-color: var(--et-text);
+  --menuitem-hover-bg-color: rgba(79, 140, 255, 0.15);
+  --menu-button-border-color: var(--et-border);
+  --menu-button-focus-outline-color: var(--et-accent);
+  --separator-color: var(--et-border);
+  --dialog-button-bg-color: rgba(255, 255, 255, 0.06);
+  --textarea-bg-color: var(--et-elev);
+}
+
+html[data-theme="light"] {
+  --et-bg: #f6f8fb;
+  --et-elev: #ffffff;
+  --et-text: #1a1f24;
+  --et-muted: #5b6672;
+  --et-border: #e6e9ef;
+
+  /* Bridge PDF.js variables to our palette */
+  --toolbar-bg-color: var(--et-elev);
+  --doorhanger-bg-color: var(--et-elev);
+  --doorhanger-separator-color: var(--et-border);
+  --menu-bg-color: var(--et-elev);
+  --menuitem-fg-color: var(--et-text);
+  --menuitem-hover-bg-color: rgba(79, 140, 255, 0.08);
+  --menu-button-border-color: var(--et-border);
+  --menu-button-focus-outline-color: var(--et-accent);
+  --separator-color: var(--et-border);
+  --dialog-button-bg-color: rgba(0, 0, 0, 0.04);
+  --textarea-bg-color: var(--et-elev);
+}
+
+/* Optional: visual hint for toggled state */
+#etThemeToggle.toggled {
+  border-color: var(--et-accent) !important;
+}
+
+/* Theme toggle icons */
+#etThemeToggle .icon-sun,
+#etThemeToggle .icon-moon {
+  display: inline-flex;
+  align-items: center;
+}
+
+html[data-theme="dark"] #etThemeToggle .icon-sun { display: none; }
+html[data-theme="dark"] #etThemeToggle .icon-moon { display: inline-flex; }
+html[data-theme="light"] #etThemeToggle .icon-sun { display: inline-flex; }
+html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
+
+/* Remove PDF.js default masked pseudo icon on our custom button to avoid black square */
+#etThemeToggle::before {
+  content: none !important;
+  display: none !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  background: none !important;
+}
+
+/* Ensure proper sizing and color for inline SVG */
+#etThemeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--et-text);
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding));
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+#etThemeToggle svg {
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  display: block;
+}
+
+/* Override PDF.js rule that hides button spans */
+#etThemeToggle > span {
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#etThemeToggle {
+  gap: 6px;
+}
+
+/* PDF.js menus and doorhangers */
+html[data-theme] .doorHanger,
+html[data-theme] .doorHangerRight,
+html[data-theme] #secondaryToolbar,
+html[data-theme] #secondaryToolbar .menuContainer,
+html[data-theme] #secondaryToolbar.menu,
+html[data-theme] #secondaryToolbar menu,
+html[data-theme] #secondaryToolbar .toolbarButton.labeled,
+html[data-theme] .dialogButtonsGroup button,
+html[data-theme] .menuContainer button,
+html[data-theme] .menuContainer .menu,
+html[data-theme] #findbar {
+  background: var(--doorhanger-bg-color) !important;
+  color: var(--et-text) !important;
+  border-color: var(--doorhanger-separator-color) !important;
+  border-radius: var(--et-radius) !important;
+  overflow: hidden;
+}
+
+/* Menu button aesthetics - unified */
+html[data-theme] #secondaryToolbar .menuContainer button,
+html[data-theme] .menuContainer button {
+  background-color: transparent !important;
+  color: var(--menuitem-fg-color) !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* Secondary toolbar menu: left-align items (undo accidental centering) */
+#secondaryToolbar .menuContainer,
+#secondaryToolbar.menu,
+#secondaryToolbar menu {
+  text-align: left !important;
+}
+
+#secondaryToolbar .menuContainer button {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  text-align: left !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: var(--menu-item-height) !important;
+}
+
+/* Make secondary toolbar menu a bit wider and visually grouped */
+#secondaryToolbar .menuContainer {
+  width: 100% !important; /* match base background rectangle width */
+  min-width: 240px !important;
+  box-sizing: border-box !important;
+  padding: 6px 8px !important;
+  border: none !important;
+  border-radius: var(--et-radius) !important;
+  background: var(--doorhanger-bg-color) !important;
+  max-height: calc(100vh - var(--toolbar-height) - 16px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important; /* clip hover bg to container width */
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+  scrollbar-gutter: stable both-edges;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-block: 16px;
+  scrollbar-width: thin;
+}
+
+/* Remove group card layering; restore normal stacking for items */
+
+/* (reverted) Do not force width or flatten wrappers; use PDF.js defaults for stability */
+
+/* Disable wheel/touch scrolling on ancestors while pointer is over the menu to avoid double scroll */
+#secondaryToolbar:hover,
+#secondaryToolbar:focus-within {
+  overscroll-behavior: contain !important;
+}
+
+/* Add consistent breathing space at top/bottom for both states */
+#secondaryToolbar .menuContainer::before,
+#secondaryToolbar .menuContainer::after {
+  content: "";
+  display: block;
+  height: 0; /* avoid extra edge spacing differences */
+}
+
+/* Hide scrollbar visually for the More menu while keeping it scrollable */
+#secondaryToolbar .menuContainer::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+#secondaryToolbar .menuContainer {
+  scrollbar-width: none !important; /* Firefox */
+  scrollbar-color: transparent transparent !important; /* hide track/thumb in FF */
+}
+
+/* Merge adjacent menu buttons into a single visual group */
+#secondaryToolbar .menuContainer button,
+#secondaryToolbar .menuContainer a.toolbarButton {
+  border-radius: 0 !important;
+  border: none !important;
+  padding: 8px 12px !important; /* symmetric left/right to match container */
+  gap: 8px !important;
+  width: 100% !important; /* hard cap to container width */
+  margin: 0 !important;
+  overflow: visible !important; /* prevent icon masks from being clipped */
+}
+
+#secondaryToolbar .menuContainer button + button,
+#secondaryToolbar .menuContainer a.toolbarButton + a.toolbarButton,
+#secondaryToolbar .menuContainer button + a.toolbarButton,
+#secondaryToolbar .menuContainer a.toolbarButton + button {
+  border-top-width: 0 !important; /* avoid double borders between neighbors */
+}
+
+#secondaryToolbar .menuContainer button:first-child,
+#secondaryToolbar .menuContainer a.toolbarButton:first-child {
+  border-top-left-radius: var(--et-radius) !important;
+  border-top-right-radius: var(--et-radius) !important;
+}
+
+#secondaryToolbar .menuContainer button:last-child,
+#secondaryToolbar .menuContainer a.toolbarButton:last-child {
+  border-bottom-left-radius: var(--et-radius) !important;
+  border-bottom-right-radius: var(--et-radius) !important;
+}
+
+/* Secondary toolbar separators: no visible line, spacing only (prevents flicker on resize) */
+#secondaryToolbar .horizontalToolbarSeparator {
+  display: block !important;
+  height: 0 !important;
+  width: auto !important;
+  margin: 4px auto !important; /* slightly tighter group spacing */
+  background: transparent !important;
+  border: none !important;
+  transition: none !important;
+}
+
+/* One UI group cards via explicit group classes (assigned in JS) */
+#secondaryToolbar .menuContainer .et-group-first,
+#secondaryToolbar .menuContainer .et-group-mid,
+#secondaryToolbar .menuContainer .et-group-last {
+  background: var(--menu-group-bg) !important;
+}
+
+#secondaryToolbar .menuContainer .et-group-first {
+  border: 1px solid var(--menu-group-border-color) !important;
+  border-bottom: none !important;
+  border-top-left-radius: var(--et-radius) !important;
+  border-top-right-radius: var(--et-radius) !important;
+}
+
+#secondaryToolbar .menuContainer .et-group-mid {
+  border-left: 1px solid var(--menu-group-border-color) !important;
+  border-right: 1px solid var(--menu-group-border-color) !important;
+}
+
+#secondaryToolbar .menuContainer .et-group-last {
+  border: 1px solid var(--menu-group-border-color) !important;
+  border-top: none !important;
+  border-bottom-left-radius: var(--et-radius) !important;
+  border-bottom-right-radius: var(--et-radius) !important;
+}
+
+/* Remove icon-column indentation; keep centered line */
+#secondaryToolbar .menuContainer .horizontalToolbarSeparator {
+  margin-inline-start: auto !important;
+  margin-inline-end: auto !important;
+}
+
+/* Anchor the doorhanger to the right edge; let inner container scroll */
+#secondaryToolbar {
+  inset-inline-end: 8px !important;
+  inset-inline-start: auto !important;
+  /* Allow vertical overflow for the doorhanger, but prevent horizontal overflow causing page scroll */
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  max-height: none !important; /* prevent outer container from creating its own scroll */
+  overscroll-behavior: contain !important; /* avoid scroll chaining to page */
+  width: auto !important; /* let JS compute exact width based on content */
+  box-sizing: border-box !important;
+}
+
+/* One UI-like icon + label layout inside menu buttons */
+#secondaryToolbar .menuContainer .toolbarButton.labeled::before,
+#secondaryToolbar .menuContainer a.toolbarButton.labeled::before {
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  margin-inline-end: 8px !important;
+}
+
+#secondaryToolbar .menuContainer .toolbarButton.labeled > span,
+#secondaryToolbar .menuContainer a.toolbarButton.labeled > span {
+  width: auto !important; /* revert to natural width but prevent overflow via flex */
+  height: auto !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important; /* allow flex shrink for ellipsis */
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+/* Symmetric horizontal padding for labeled buttons to keep hover bg inside container */
+#secondaryToolbar .menuContainer .toolbarButton.labeled,
+#secondaryToolbar .menuContainer a.toolbarButton.labeled {
+  padding-inline-end: 12px !important;
+}
+
+/* Ensure anchor-based toolbar items also fill and align */
+#secondaryToolbar .menuContainer a.toolbarButton {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+}
+
+/* Ensure any wrappers/sections inside the menu take the same width as the background */
+#secondaryToolbar .menuContainer .visibleMediumView,
+#secondaryToolbar .menuContainer #cursorToolButtons,
+#secondaryToolbar .menuContainer #scrollModeButtons,
+#secondaryToolbar .menuContainer #spreadModeButtons {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Normalize the "현재 페이지"-related items (e.g., viewBookmark/current item) to match others */
+#secondaryToolbar #viewBookmark,
+#secondaryToolbar #currentOutlineItem {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  min-height: var(--menu-item-height) !important;
+  padding: 8px 12px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+#secondaryToolbar #viewBookmark::before,
+#secondaryToolbar #currentOutlineItem::before {
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  margin-inline-end: 8px !important;
+}
+
+#secondaryToolbar #viewBookmark > span,
+#secondaryToolbar #currentOutlineItem > span {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+/* Hover state unify for anchors too */
+#secondaryToolbar .menuContainer a.toolbarButton:hover,
+#secondaryToolbar .menuContainer button:hover,
+#secondaryToolbar #viewBookmark:hover,
+#secondaryToolbar #currentOutlineItem:hover {
+  background-color: var(--menuitem-hover-bg-color) !important;
+  border-radius: var(--et-radius) !important;
+  background-clip: padding-box !important; /* clip to own padding box */
+}
+
+/* Add spacing after the "Open file" item to mimic a transparent separator below it */
+#secondaryToolbar #secondaryOpenFile {
+  margin-bottom: 4px !important;
+}
+
+html[data-theme] #secondaryToolbar .menuContainer button:hover,
+html[data-theme] .menuContainer button:hover,
+#secondaryToolbar #viewBookmark:hover,
+#secondaryToolbar #currentOutlineItem:hover {
+  background-color: rgba(127, 127, 127, 0.08) !important; /* subtler hover */
+}
+
+/* Hide stray separators at menu edges so they don't reappear when no scroll is needed */
+#secondaryToolbar .menuContainer .horizontalToolbarSeparator:first-of-type,
+#secondaryToolbar .menuContainer .horizontalToolbarSeparator:last-of-type {
+  height: 0 !important;
+  background: transparent !important;
+  margin: 0 !important;
+  display: none !important;
+}
+
+/* When menu doesn't need scrolling, keep group spacing but hide separator line */
+#secondaryToolbar .menuContainer.no-scroll .horizontalToolbarSeparator {
+  display: block !important;
+  height: 0 !important; /* no visible line */
+  margin: 4px auto !important; /* match spacing with scroll state */
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Ensure bottom spacing is consistent regardless of scroll presence */
+#secondaryToolbar .menuContainer .horizontalToolbarSeparator:last-of-type {
+  display: block !important;
+  height: 0 !important;
+  margin: 4px auto !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Separators and outlines */
+html[data-theme] .verticalToolbarSeparator,
+html[data-theme] .horizontalToolbarSeparator,
+html[data-theme] #secondaryToolbar .horizontalToolbarSeparator {
+  background: var(--separator-color) !important;
+}
+
+/* Inputs inside dialogs/menus */
+html[data-theme] .toolbarField,
+html[data-theme] input[type="number"],
+html[data-theme] input[type="text"],
+html[data-theme] textarea,
+html[data-theme] select {
+  background: var(--textarea-bg-color) !important;
+  border: 1px solid var(--et-border) !important;
+  color: var(--et-text) !important;
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding)) !important;
+  box-sizing: border-box !important;
+}
+
+/* Doorhanger arrow should match bg */
+html[data-theme] .doorHangerRight::after,
+html[data-theme] .doorHanger::after {
+  border-bottom-color: var(--doorhanger-bg-color) !important;
+}
+
+/* Findbar fine-tune */
+html[data-theme] #findbar .toolbarButton,
+html[data-theme] #findbar .toggle-button,
+html[data-theme] #findbar label,
+html[data-theme] #findbar span,
+html[data-theme] #findbar input {
+  color: var(--et-text) !important;
+}
+
+/* Center scale select: unify curvature and prevent overflow */
+#scaleSelectContainer {
+  border: 1px solid var(--et-border) !important;
+  border-radius: var(--et-radius) !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding));
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+#scaleSelectContainer select#scaleSelect {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
+  color: var(--et-text) !important;
+  border: none !important;
+  outline: none !important;
+  padding: 6px 28px 6px 10px !important;
+  height: 100% !important;
+}
+
+#scaleSelectContainer select#scaleSelect option {
+  background: var(--et-elev);
+  color: var(--et-text);
+}
+
+/* Ensure zoom buttons and select align visually */
+#toolbarViewerMiddle .toolbarHorizontalGroup > .toolbarButton,
+#toolbarViewerMiddle #scaleSelectContainer {
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding));
+}
+
+/* Center masked SVG icons vertically in toolbar buttons */
+#outerContainer .toolbar .toolbarButton,
+#outerContainer #secondaryToolbar .toolbarButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding));
+  box-sizing: border-box;
+  line-height: normal;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Ensure theme toggle inherits the same font-size and vertical metrics as other buttons */
+#etThemeToggle span { line-height: 1; font-size: inherit; }
+
+#outerContainer .toolbar .toolbarButton::before,
+#outerContainer #secondaryToolbar .toolbarButton::before {
+  vertical-align: middle !important;
+  display: inline-block !important;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+}
+
+/* Ensure all top toolbar controls share identical height/vertical alignment */
+#toolbarContainer .toolbarButton,
+#toolbarContainer .toolbarButtonWithContainer > .toolbarButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  height: calc(var(--toolbar-height) - 2 * var(--toolbar-vertical-padding));
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Restore native switch sizing/flow inside menus (avoid icon-size forcing) */
+#secondaryToolbar .toggle-button,
+#toolbarContainer .toggle-button {
+  display: inline-block !important;
+  height: auto !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+}
+
+
+
+
+

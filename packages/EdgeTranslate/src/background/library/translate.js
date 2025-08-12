@@ -611,19 +611,34 @@ function translatePage(channel) {
 function executeGoogleScript(channel) {
     promiseTabs.query({ active: true, currentWindow: true }).then((tabs) => {
         if (tabs[0]) {
-            chrome.scripting
-                .executeScript({
-                    target: { tabId: tabs[0].id },
-                    files: ["/google/init.js"],
-                })
-                .then(() => {
-                    channel.emitToTabs(tabs[0].id, "start_page_translate", {
-                        translator: "google",
+            const hasScripting =
+                typeof chrome !== "undefined" && chrome.scripting && chrome.scripting.executeScript;
+            if (hasScripting) {
+                chrome.scripting
+                    .executeScript({
+                        target: { tabId: tabs[0].id },
+                        files: ["/google/init.js"],
+                    })
+                    .then(() => {
+                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                            translator: "google",
+                        });
+                    })
+                    .catch((error) => {
+                        logWarn(`Chrome scripting error: ${error}`);
                     });
-                })
-                .catch((error) => {
-                    logWarn(`Chrome scripting error: ${error}`);
-                });
+            } else {
+                // Fallback for Safari (MV2-compatible executeScript via tabs)
+                try {
+                    chrome.tabs.executeScript(tabs[0].id, { file: "/google/init.js" }, () => {
+                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                            translator: "google",
+                        });
+                    });
+                } catch (error) {
+                    logWarn(`Fallback executeScript error: ${error}`);
+                }
+            }
         }
     });
 }

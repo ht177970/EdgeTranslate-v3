@@ -105,7 +105,7 @@ function packToZip() {
  */
 function watcher(done) {
     gulp.watch("./src/**/*.{js,jsx}").on("change", gulp.series(eslintJS));
-    gulp.watch("./src/(manifest|manifest_chrome|manifest_firefox).json").on(
+    gulp.watch("./src/(manifest|manifest_chrome|manifest_firefox|manifest_safari).json").on(
         "change",
         gulp.series(manifest)
     );
@@ -181,6 +181,10 @@ function buildJSDev(done) {
 function manifest() {
     let output_dir = `./build/${browser}/`;
     let manifest_patch = `./src/manifest_${browser}.json`;
+    if (browser === "safari") {
+        // Safari uses mostly Chrome-compatible manifest with limited keys.
+        manifest_patch = `./src/manifest_safari.json`;
+    }
     return gulp
         .src("./src/manifest.json", { base: "src" })
         .pipe(merge_json(manifest_patch))
