@@ -290,6 +290,21 @@ html[data-theme] #findbar input {
   height: var(--toolbar-height);
 }
 
+/* Center masked SVG icons vertically in toolbar buttons */
+#outerContainer .toolbar .toolbarButton,
+#outerContainer #secondaryToolbar .toolbarButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  height: var(--toolbar-height);
+  box-sizing: border-box;
+}
+
+#outerContainer .toolbar .toolbarButton::before,
+#outerContainer #secondaryToolbar .toolbarButton::before {
+  vertical-align: middle !important;
+}
+
 
 
 
