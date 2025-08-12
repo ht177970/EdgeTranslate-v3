@@ -145,6 +145,156 @@ try {
       setTimeout(setupThemeToggle, 0);
     }
   }
+
+  // After viewer UI mounts, manage secondaryToolbar scroll state and feel
+  const setupSecondaryToolbarScroll = () => {
+    const container = document.getElementById('secondaryToolbarButtonContainer');
+    const menu = document.getElementById('secondaryToolbar');
+    if (!container) return false;
+    // Debounced ResizeObserver update to avoid mutation-loops
+    let roFramePending = false;
+    let lastDesiredNoScroll = null;
+    const measureAndMutate = () => {
+      roFramePending = false;
+      const needsScroll = container.scrollHeight > container.clientHeight + 1;
+      const desiredNoScroll = !needsScroll;
+      if (lastDesiredNoScroll !== desiredNoScroll) {
+        lastDesiredNoScroll = desiredNoScroll;
+        container.classList.toggle('no-scroll', desiredNoScroll);
+      }
+    };
+    const scheduleUpdate = () => {
+      if (roFramePending) return;
+      roFramePending = true;
+      requestAnimationFrame(measureAndMutate);
+    };
+    scheduleUpdate();
+    // Observe size changes (menu open/close, window resize, localization)
+    const ro = new ResizeObserver(() => scheduleUpdate());
+    ro.observe(container);
+    window.addEventListener('resize', scheduleUpdate);
+
+    // Restore: only assign grouping classes, do not render background cards
+    const applyGroupClasses = () => {
+      // Clear all previous
+      container.querySelectorAll('.et-group-first, .et-group-mid, .et-group-last').forEach((el) => {
+        el.classList.remove('et-group-first', 'et-group-mid', 'et-group-last');
+      });
+      // Build a flattened, in-order list of items/separators (unwrap .visibleMediumView)
+      const children = [];
+      for (const node of Array.from(container.children)) {
+        if (node.classList.contains('visibleMediumView')) {
+          for (const sub of Array.from(node.children)) {
+            if (sub.matches('button.toolbarButton, a.toolbarButton')) children.push(sub);
+          }
+        } else {
+          children.push(node);
+        }
+      }
+
+      // Build groups separated by horizontalToolbarSeparator
+      let run = [];
+      const flushRun = () => {
+        if (!run.length) return;
+        if (run.length === 1) {
+          run[0].classList.add('et-group-first', 'et-group-last');
+        } else {
+          run[0].classList.add('et-group-first');
+          for (let i = 1; i < run.length - 1; i++) run[i].classList.add('et-group-mid');
+          run[run.length - 1].classList.add('et-group-last');
+        }
+        run = [];
+      };
+      for (const el of children) {
+        if (el.classList.contains('horizontalToolbarSeparator')) {
+          flushRun();
+        } else if (el.matches('button.toolbarButton, a.toolbarButton')) {
+          run.push(el);
+        }
+      }
+      flushRun();
+    };
+    // Initial and on mutations (structure might change due to localization/visibility)
+    let groupFramePending = false;
+    const scheduleGroupApply = () => {
+      if (groupFramePending) return;
+      groupFramePending = true;
+      requestAnimationFrame(() => {
+        groupFramePending = false;
+        applyGroupClasses();
+        scheduleUpdate();
+      });
+    };
+    scheduleGroupApply();
+    const mo = new MutationObserver(() => scheduleGroupApply());
+    mo.observe(container, { childList: true, subtree: false, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
+
+    // Diagnose elements that overflow horizontally (for fixing right-side hover bleed)
+    const diagnoseOverflow = () => {
+      const containerRect = container.getBoundingClientRect();
+      const containerComputed = getComputedStyle(container);
+      const padLeft = parseFloat(containerComputed.paddingLeft) || 0;
+      const padRight = parseFloat(containerComputed.paddingRight) || 0;
+      const limit = containerRect.width - padLeft - padRight + 0.5; // tolerance
+      container.querySelectorAll('.et-overflow').forEach(n => n.classList.remove('et-overflow'));
+      const rows = [];
+      for (const el of Array.from(container.children)) {
+        if (!(el.matches('button.toolbarButton, a.toolbarButton, .horizontalToolbarSeparator, .visibleMediumView'))) continue;
+        const cs = getComputedStyle(el);
+        const margin = (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0);
+        const width = el.scrollWidth + margin;
+        const id = el.id || (el.className || '').toString();
+        if (width > limit) {
+          el.classList.add('et-overflow');
+          rows.push({ id, width: Math.round(width), limit: Math.round(limit) });
+        }
+      }
+      if (rows.length) {
+        try { console.table(rows); } catch { console.log(rows); }
+      }
+    };
+
+    // Run when the menu is opened and size it to the longest visible item
+    const openedCheck = () => {
+      if (menu && !menu.classList.contains('hidden')) {
+        requestAnimationFrame(() => {
+          diagnoseOverflow();
+          try {
+            // Measure longest visible item width
+            let maxWidth = 0;
+            const pad = 16; // account for inline paddings
+            for (const el of Array.from(container.children)) {
+              if (!el.matches || !el.matches('button.toolbarButton, a.toolbarButton, .visibleMediumView > button.toolbarButton')) continue;
+              const rect = el.getBoundingClientRect();
+              maxWidth = Math.max(maxWidth, rect.width);
+            }
+            if (maxWidth > 0) {
+              // Clamp to viewport
+              const vw = document.documentElement.clientWidth;
+              const finalWidth = Math.min(maxWidth + pad, vw - 16);
+              menu.style.width = `${Math.max(220, Math.floor(finalWidth))}px`;
+            }
+          } catch {}
+        });
+      }
+    };
+    const menuObs = new MutationObserver(openedCheck);
+    if (menu) menuObs.observe(menu, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    window.addEventListener('resize', openedCheck);
+
+    return true;
+  };
+
+  const trySetupToolbar = () => {
+    if (!setupSecondaryToolbarScroll()) {
+      setTimeout(trySetupToolbar, 50);
+    }
+  };
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', trySetupToolbar);
+  } else {
+    trySetupToolbar();
+  }
 })();
 
 
