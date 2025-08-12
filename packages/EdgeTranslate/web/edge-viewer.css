@@ -152,6 +152,29 @@ html[data-theme="dark"] #etThemeToggle .icon-moon { display: inline-flex; }
 html[data-theme="light"] #etThemeToggle .icon-sun { display: inline-flex; }
 html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
 
+/* Remove PDF.js default masked pseudo icon on our custom button to avoid black square */
+#etThemeToggle::before {
+  content: none !important;
+  display: none !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  background: none !important;
+}
+
+/* Ensure proper sizing and color for inline SVG */
+#etThemeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--et-text);
+}
+
+#etThemeToggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 /* PDF.js menus and doorhangers */
 html[data-theme] .doorHanger,
 html[data-theme] .doorHangerRight,
