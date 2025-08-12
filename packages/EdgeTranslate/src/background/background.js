@@ -821,13 +821,15 @@ chrome.runtime.onInstalled.addListener(async (details) => {
                 url: chrome.i18n.getMessage("WikiLink"),
             });
 
-            // 告知用户数据收集相关信息
-            chrome.notifications.create("data_collection_notification", {
-                type: "basic",
-                iconUrl: chrome.runtime.getURL("icon/icon128.png"),
-                title: chrome.i18n.getMessage("AppName"),
-                message: chrome.i18n.getMessage("DataCollectionNotice"),
-            });
+            // 告知用户数据收集相关信息（在 Safari 下可能不支持 notifications 权限）
+            if (chrome.notifications && typeof chrome.notifications.create === "function") {
+                chrome.notifications.create("data_collection_notification", {
+                    type: "basic",
+                    iconUrl: chrome.runtime.getURL("icon/icon128.png"),
+                    title: chrome.i18n.getMessage("AppName"),
+                    message: chrome.i18n.getMessage("DataCollectionNotice"),
+                });
+            }
 
             // 尝试发送安装事件
             setTimeout(() => {
@@ -863,13 +865,15 @@ chrome.runtime.onInstalled.addListener(async (details) => {
                 chrome.storage.sync.set(result);
             });
 
-            // 从旧版本更新，引导用户查看更新日志
-            chrome.notifications.create("update_notification", {
-                type: "basic",
-                iconUrl: chrome.runtime.getURL("icon/icon128.png"),
-                title: chrome.i18n.getMessage("AppName"),
-                message: chrome.i18n.getMessage("ExtensionUpdated"),
-            });
+            // 从旧版本更新，引导用户查看更新日志（在 Safari 下可能不支持 notifications 权限）
+            if (chrome.notifications && typeof chrome.notifications.create === "function") {
+                chrome.notifications.create("update_notification", {
+                    type: "basic",
+                    iconUrl: chrome.runtime.getURL("icon/icon128.png"),
+                    title: chrome.i18n.getMessage("AppName"),
+                    message: chrome.i18n.getMessage("ExtensionUpdated"),
+                });
+            }
         }
 
         // 卸载原因调查
@@ -897,24 +901,26 @@ const TRANSLATOR_MANAGER = new TranslatorManager(channel);
 /**
  * 监听用户点击通知事件
  */
-chrome.notifications.onClicked.addListener((notificationId) => {
-    switch (notificationId) {
-        case "update_notification":
-            chrome.tabs.create({
-                // 为releases页面创建一个新的标签页
-                url: "https://github.com/EdgeTranslate/EdgeTranslate/releases",
-            });
-            break;
-        case "data_collection_notification":
-            chrome.tabs.create({
-                // 为设置页面单独创建一个标签页
-                url: chrome.runtime.getURL("options/options.html#google-analytics"),
-            });
-            break;
-        default:
-            break;
-    }
-});
+if (chrome.notifications && typeof chrome.notifications.onClicked?.addListener === "function") {
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        switch (notificationId) {
+            case "update_notification":
+                chrome.tabs.create({
+                    // 为releases页面创建一个新的标签页
+                    url: "https://github.com/EdgeTranslate/EdgeTranslate/releases",
+                });
+                break;
+            case "data_collection_notification":
+                chrome.tabs.create({
+                    // 为设置页面单独创建一个标签页
+                    url: chrome.runtime.getURL("options/options.html#google-analytics"),
+                });
+                break;
+            default:
+                break;
+        }
+    });
+}
 
 /**
  * 添加点击菜单后的处理事件
