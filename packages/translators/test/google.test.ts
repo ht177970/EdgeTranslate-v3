@@ -1,4 +1,3 @@
-import axios from "axios";
 import GoogleTranslator from "../src/translators/google";
 
 describe("google translator api", () => {

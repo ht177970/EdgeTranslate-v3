@@ -1,4 +1,3 @@
-import axios from "axios";
 import HybridTranslator from "../src/translators/hybrid";
 
 describe("hybrid translator api", () => {

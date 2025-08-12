@@ -40,23 +40,7 @@ describe("Make sure that all of the supported languages in translators can be fo
         }
     });
 
-    it("to test supported languages in baidu.ts", () => {
-        let languages = TRANSLATORS.BaiduTranslate.supportedLanguages();
-        for (let lan of languages) {
-            if (lan !== "auto") {
-                expect(LANGUAGES[lan as keyof typeof LANGUAGES]).toBeDefined();
-            }
-        }
-    });
-
-    it("to test supported languages in tencent.ts", () => {
-        let languages = TRANSLATORS.TencentTranslate.supportedLanguages();
-        for (let lan of languages) {
-            if (lan !== "auto") {
-                expect(LANGUAGES[lan as keyof typeof LANGUAGES]).toBeDefined();
-            }
-        }
-    });
+    // Skip non-existent translators in current implementation
 
     it("to test supported languages in deepl.ts", () => {
         let languages = TRANSLATORS.DeepLTranslate.supportedLanguages();
