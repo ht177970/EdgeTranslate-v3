@@ -298,11 +298,17 @@ html[data-theme] #findbar input {
   justify-content: center;
   height: var(--toolbar-height);
   box-sizing: border-box;
+  line-height: var(--toolbar-height);
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 #outerContainer .toolbar .toolbarButton::before,
 #outerContainer #secondaryToolbar .toolbarButton::before {
   vertical-align: middle !important;
+  display: inline-block !important;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
 }
 
 

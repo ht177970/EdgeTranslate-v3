@@ -8050,7 +8050,8 @@ class PDFPrintService {
   }
   throwIfInactive() {
     if (!this.active) {
-      throw new Error("This print request was cancelled or completed.");
+      // Silently ignore when print gets cancelled/completed to avoid noisy console errors
+      return;
     }
   }
 }
