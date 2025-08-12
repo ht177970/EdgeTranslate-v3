@@ -87,10 +87,10 @@ try {
   script.src = 'viewer.mjs';
   document.head.appendChild(script);
 
-  // Setup theme toggle after DOM is ready
-  window.addEventListener('DOMContentLoaded', () => {
+  // Setup theme toggle (robust to readyState)
+  const setupThemeToggle = () => {
     const btn = document.getElementById('etThemeToggle');
-    if (!btn) return;
+    if (!btn) return false;
 
     const applyTheme = (mode) => {
       document.documentElement.setAttribute('data-theme', mode);
@@ -111,7 +111,17 @@ try {
       const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       applyTheme(next);
     });
-  });
+    return true;
+  };
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', setupThemeToggle);
+  } else {
+    // Try immediately; if button not yet available, retry shortly
+    if (!setupThemeToggle()) {
+      setTimeout(setupThemeToggle, 0);
+    }
+  }
 })();
 
 

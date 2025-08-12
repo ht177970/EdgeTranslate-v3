@@ -191,8 +191,17 @@ See https://github.com/adobe-type-tools/cmap-resources
               </div>
               <div id="toolbarViewerRight" class="toolbarHorizontalGroup">
                 <div class="toolbarHorizontalGroup">
-                  <button id="etThemeToggle" class="toolbarButton" type="button" tabindex="0" aria-pressed="false" title="Toggle theme">
-                    <span>Theme</span>
+                  <button id="etThemeToggle" class="toolbarButton" type="button" tabindex="0" aria-pressed="false" title="Toggle theme" aria-label="Toggle theme">
+                    <span class="icon-sun" aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM1 13h3v-2H1v2zm10-9h-2v3h2V4zm7.04 1.46l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zM17 13h3v-2h-3v2zm-5 7h2v-3h-2v3zm6.24-1.84l1.79 1.79 1.41-1.41-1.79-1.79-1.41 1.41zM12 8a4 4 0 100 8 4 4 0 000-8zM4.22 17.66l1.41 1.41 1.79-1.79-1.41-1.41-1.79 1.79z"/>
+                      </svg>
+                    </span>
+                    <span class="icon-moon" aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.74 2a9 9 0 108.32 13.07A7 7 0 0112.74 2z"/>
+                      </svg>
+                    </span>
                   </button>
                 </div>
                 <div id="editorModeButtons" class="toolbarHorizontalGroup" role="radiogroup">
