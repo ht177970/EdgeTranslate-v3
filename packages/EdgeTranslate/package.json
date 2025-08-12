@@ -16,7 +16,9 @@
         "pack:safari": "gulp pack --browser safari",
         "e2e:chrome": "SELENIUM_BROWSER=chrome jest -i --config './test/e2e/jest/jest.config.js'",
         "e2e:firefox": "SELENIUM_BROWSER=firefox jest -i --config './test/e2e/jest/jest.config.js'",
-        "build": "node -e \"console.log('\\npacking package for chrome')\" && gulp pack --browser chrome && node -e \"console.log('\\npacking package for firefox')\" && gulp pack --browser firefox && node -e \"console.log('\\npacking package for safari')\" && gulp pack --browser safari"
+    "build": "node -e \"console.log('\\npacking package for chrome')\" && gulp pack --browser chrome && node -e \"console.log('\\npacking package for firefox')\" && gulp pack --browser firefox && node -e \"console.log('\\npacking package for safari')\" && gulp pack --browser safari",
+    "safari:sync": "npm run pack:safari && xcrun safari-web-extension-converter ./build/safari --rebuild-project ./safari-xcode --no-open --no-prompt --copy-resources",
+    "safari:rsync": "rsync -av --delete ./build/safari/ ./safari-xcode/EdgeTranslate/EdgeTranslate\\ Extension/Resources/"
     },
     "devDependencies": {
         "@babel/core": "^7.17.7",

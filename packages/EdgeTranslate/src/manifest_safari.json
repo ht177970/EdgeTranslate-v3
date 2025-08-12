@@ -19,6 +19,12 @@
       "matches": ["*://*.deepl.com/*"],
       "js": ["./content/deepl_injector.js"],
       "all_frames": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_idle",
+      "js": ["./content/google_page_injector.js"],
+      "all_frames": false
     }
   ]
 }

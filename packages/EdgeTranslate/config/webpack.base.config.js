@@ -10,6 +10,7 @@ module.exports = {
         "/popup/popup": "./src/popup/popup.js",
         "/options/options": "./src/options/options.js",
         "/content/deepl_injector": "./src/content/deepl_injector.js",
+        "/content/google_page_injector": "./src/content/google_page_injector.js",
     },
     output: {
         filename: "[name].js",

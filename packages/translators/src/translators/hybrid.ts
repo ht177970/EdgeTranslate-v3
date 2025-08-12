@@ -49,12 +49,34 @@ class HybridTranslator {
         };
 
         /**
-         * DeepL translator needs help from other translators and we choose Google for now.
+         * DeepL iframe는 일부 브라우저(특히 Safari)에서 frame-ancestors/CSP로 차단될 수 있음.
+         * Safari 추정 시 DeepL을 사용하지 않고 Google/Bing으로 폴백.
          */
-        this.REAL_TRANSLATORS.DeepLTranslate = new DeepLTranslator(
-            this.REAL_TRANSLATORS.BingTranslate,
-            this.REAL_TRANSLATORS.BingTranslate
-        );
+        const isSafari = ((): boolean => {
+            if (typeof navigator === "undefined" || !navigator.userAgent) return false;
+            const ua = navigator.userAgent;
+            const isSafariEngine = /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+            return isSafariEngine;
+        })();
+
+        if (!isSafari) {
+            this.REAL_TRANSLATORS.DeepLTranslate = new DeepLTranslator(
+                this.REAL_TRANSLATORS.BingTranslate,
+                this.REAL_TRANSLATORS.BingTranslate
+            );
+        } else {
+            // Safari: DeepL 비활성화 스텁(지원 언어 0으로 하여 선택 대상에서 제외)
+            const google = this.REAL_TRANSLATORS.GoogleTranslate;
+            const bing = this.REAL_TRANSLATORS.BingTranslate;
+            this.REAL_TRANSLATORS.DeepLTranslate = {
+                supportedLanguages: () => new Set<string>(),
+                detect: async (text: string) => google.detect(text),
+                translate: async (text: string, from: string, to: string) => google.translate(text, from, to),
+                pronounce: async (text: string, language: string, speed: PronunciationSpeed) =>
+                    bing.pronounce(text, language, speed),
+                stopPronounce: () => bing.stopPronounce(),
+            } as unknown as DeepLTranslator;
+        }
 
         this.useConfig(config);
     }

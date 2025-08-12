@@ -43,13 +43,13 @@ wrapConsoleForFiltering();
 /**
  * Chrome Runtime 오류 처리
  */
-chrome.runtime.onStartup.addListener(() => {
-    logInfo("Extension startup");
-});
+try {
+    chrome.runtime.onStartup?.addListener?.(() => {
+        logInfo("Extension startup");
+    });
+} catch {}
 
-chrome.runtime.onSuspend.addListener(() => {
-    logInfo("Extension suspended");
-});
+// Note: onSuspend is not supported in Safari; intentionally not registering.
 
 /**
  * PDF 내비게이션 가로채기: chrome 기본 PDF 뷰어 대신 내장 PDF.js 뷰어로 열기

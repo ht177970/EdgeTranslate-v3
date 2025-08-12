@@ -590,17 +590,37 @@ class TranslatorManager {
  * @param {import("../../common/scripts/channel.js").default} channel Communication channel.
  */
 function translatePage(channel) {
-    getOrSetDefaultSettings(["DefaultPageTranslator"], DEFAULT_SETTINGS).then((result) => {
-        let translator = result.DefaultPageTranslator;
-        switch (translator) {
-            case "GooglePageTranslate":
-                executeGoogleScript(channel);
-                break;
-            default:
-                executeGoogleScript(channel);
-                break;
+    getOrSetDefaultSettings(["DefaultPageTranslator", "languageSetting"], DEFAULT_SETTINGS).then(
+        (result) => {
+            const translator = result.DefaultPageTranslator;
+            const targetLang = (result.languageSetting && result.languageSetting.tl) || "en";
+            const isSafari = (() => {
+                if (typeof navigator === "undefined" || !navigator.userAgent) return false;
+                const ua = navigator.userAgent;
+                return (
+                    /Safari\//.test(ua) &&
+                    !/Chrome\//.test(ua) &&
+                    !/Chromium\//.test(ua) &&
+                    !/Edg\//.test(ua)
+                );
+            })();
+
+            // On Safari, prefer opening Google Translate proxy page to bypass CSP restrictions
+            if (isSafari) {
+                openGoogleSiteTranslate(targetLang);
+                return;
+            }
+
+            switch (translator) {
+                case "GooglePageTranslate":
+                    executeGoogleScript(channel);
+                    break;
+                default:
+                    executeGoogleScript(channel);
+                    break;
+            }
         }
-    });
+    );
 }
 
 /**
@@ -617,7 +637,7 @@ function executeGoogleScript(channel) {
                 chrome.scripting
                     .executeScript({
                         target: { tabId: tabs[0].id },
-                        files: ["/google/init.js"],
+                        files: ["google/init.js"],
                     })
                     .then(() => {
                         channel.emitToTabs(tabs[0].id, "start_page_translate", {
@@ -630,15 +650,38 @@ function executeGoogleScript(channel) {
             } else {
                 // Fallback for Safari (MV2-compatible executeScript via tabs)
                 try {
-                    chrome.tabs.executeScript(tabs[0].id, { file: "/google/init.js" }, () => {
+                    chrome.tabs.executeScript(tabs[0].id, { file: "google/init.js" }, () => {
                         channel.emitToTabs(tabs[0].id, "start_page_translate", {
                             translator: "google",
                         });
                     });
                 } catch (error) {
-                    logWarn(`Fallback executeScript error: ${error}`);
+                    // Safari strict CSP may block programmatic injection; ask content script to inject
+                    channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
+                    logWarn(`Fallback executeScript error, delegated to content script: ${error}`);
                 }
             }
+        }
+    });
+}
+
+/**
+ * Open Google site translate proxy for current tab URL (Safari fallback).
+ *
+ * @param {string} targetLang target language like 'en', 'zh-CN'
+ */
+function openGoogleSiteTranslate(targetLang) {
+    promiseTabs.query({ active: true, currentWindow: true }).then((tabs) => {
+        if (!tabs[0]) return;
+        const currentUrl = tabs[0].url || "";
+        if (!currentUrl) return;
+        const proxy = `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(
+            targetLang
+        )}&u=${encodeURIComponent(currentUrl)}`;
+        try {
+            chrome.tabs.create({ url: proxy });
+        } catch (e) {
+            logWarn("Open Google site translate failed", e);
         }
     });
 }

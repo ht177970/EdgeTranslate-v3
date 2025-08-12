@@ -201,8 +201,30 @@ function manifest() {
                             delete manifestJson.options_ui.open_in_tab;
                         }
                         if (Array.isArray(manifestJson.permissions)) {
-                            manifestJson.permissions = manifestJson.permissions.filter((p) => p !== "notifications");
+                            manifestJson.permissions = manifestJson.permissions.filter(
+                                (p) => p !== "notifications" && p !== "declarativeNetRequest"
+                            );
                         }
+
+                        // Convert MV3 background service_worker to MV2 background scripts for Safari
+                        if (manifestJson.background && manifestJson.background.service_worker) {
+                            const workerFile = manifestJson.background.service_worker;
+                            manifestJson.background = { scripts: [workerFile] };
+                        }
+
+                        // Convert MV3 CSP object to MV2 string for Safari
+                        if (manifestJson.content_security_policy) {
+                            if (typeof manifestJson.content_security_policy === "object") {
+                                manifestJson.content_security_policy =
+                                    "script-src 'self'; object-src 'self'";
+                            }
+                        }
+
+                        // Remove declarative_net_request rules for Safari
+                        if (manifestJson.declarative_net_request) {
+                            delete manifestJson.declarative_net_request;
+                        }
+
                         file.contents = Buffer.from(JSON.stringify(manifestJson));
                     }
                 } catch (e) {
