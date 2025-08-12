@@ -89,4 +89,26 @@ html, body {
 *::-webkit-scrollbar-thumb { background: var(--et-border); border-radius: 8px; }
 *::-webkit-scrollbar-thumb:hover { background: #3a4150; }
 
+/* Explicit theme overrides via attribute */
+html[data-theme="dark"] {
+  --et-bg: #101317;
+  --et-elev: #171b21;
+  --et-text: #e6ebf1;
+  --et-muted: #9aa6b2;
+  --et-border: #2a2f37;
+}
+
+html[data-theme="light"] {
+  --et-bg: #f6f8fb;
+  --et-elev: #ffffff;
+  --et-text: #1a1f24;
+  --et-muted: #5b6672;
+  --et-border: #e6e9ef;
+}
+
+/* Optional: visual hint for toggled state */
+#etThemeToggle.toggled {
+  border-color: var(--et-accent) !important;
+}
+
 

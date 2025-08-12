@@ -30,6 +30,13 @@ try {
 
 // Prepare URL before loading viewer.mjs, following official behavior where file param drives initial load
 (async () => {
+  // Apply persisted theme early to avoid FOUC
+  try {
+    const saved = localStorage.getItem('et_viewer_theme');
+    if (saved === 'dark' || saved === 'light') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
   const fileParam = params.get('file');
@@ -79,6 +86,32 @@ try {
   script.type = 'module';
   script.src = 'viewer.mjs';
   document.head.appendChild(script);
+
+  // Setup theme toggle after DOM is ready
+  window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('etThemeToggle');
+    if (!btn) return;
+
+    const applyTheme = (mode) => {
+      document.documentElement.setAttribute('data-theme', mode);
+      try { localStorage.setItem('et_viewer_theme', mode); } catch {}
+      btn.setAttribute('aria-pressed', String(mode === 'dark'));
+      btn.classList.toggle('toggled', mode === 'dark');
+    };
+
+    let current = document.documentElement.getAttribute('data-theme');
+    if (current !== 'dark' && current !== 'light') {
+      current = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      applyTheme(current);
+    } else {
+      applyTheme(current);
+    }
+
+    btn.addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    });
+  });
 })();
 
 
