@@ -32,10 +32,23 @@ try {
 (async () => {
   // Apply persisted theme early to avoid FOUC
   try {
-    const saved = localStorage.getItem('et_viewer_theme');
-    if (saved === 'dark' || saved === 'light') {
-      document.documentElement.setAttribute('data-theme', saved);
+    // Determine desired mode from our own preference or system
+    let saved = localStorage.getItem('et_viewer_theme');
+    if (saved !== 'dark' && saved !== 'light') {
+      saved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      localStorage.setItem('et_viewer_theme', saved);
     }
+
+    // Persist into PDF.js preferences so built-in theme is used
+    const prefsRaw = localStorage.getItem('pdfjs.preferences');
+    let prefsObj = {};
+    try { prefsObj = prefsRaw ? JSON.parse(prefsRaw) : {}; } catch {}
+    prefsObj.viewerCssTheme = saved === 'dark' ? 2 : 1; // 1: light, 2: dark
+    localStorage.setItem('pdfjs.preferences', JSON.stringify(prefsObj));
+
+    // Apply immediately so UI paints correctly before viewer init
+    document.documentElement.style.colorScheme = saved;
+    document.documentElement.setAttribute('data-theme', saved);
   } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
@@ -93,8 +106,18 @@ try {
     if (!btn) return false;
 
     const applyTheme = (mode) => {
+      // Update document styles
+      document.documentElement.style.colorScheme = mode;
       document.documentElement.setAttribute('data-theme', mode);
-      try { localStorage.setItem('et_viewer_theme', mode); } catch {}
+      // Persist in both our storage and PDF.js preferences
+      try {
+        localStorage.setItem('et_viewer_theme', mode);
+        const prefsRaw = localStorage.getItem('pdfjs.preferences');
+        let prefsObj = {};
+        try { prefsObj = prefsRaw ? JSON.parse(prefsRaw) : {}; } catch {}
+        prefsObj.viewerCssTheme = mode === 'dark' ? 2 : 1;
+        localStorage.setItem('pdfjs.preferences', JSON.stringify(prefsObj));
+      } catch {}
       btn.setAttribute('aria-pressed', String(mode === 'dark'));
       btn.classList.toggle('toggled', mode === 'dark');
     };
