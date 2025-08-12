@@ -45,7 +45,8 @@ function shouldFilterError(message) {
 
 // Log level: 'debug' | 'info' | 'warn' | 'error' | 'silent'
 const LEVEL_ORDER = { debug: 10, info: 20, warn: 30, error: 40, silent: 90 };
-let currentLevel = typeof BUILD_ENV !== "undefined" && BUILD_ENV === "development" ? "debug" : "warn";
+let currentLevel =
+    typeof BUILD_ENV !== "undefined" && BUILD_ENV === "development" ? "debug" : "warn";
 
 function setLogLevel(level) {
     if (LEVEL_ORDER[level] != null) currentLevel = level;
@@ -90,5 +91,3 @@ function wrapConsoleForFiltering() {
         }
     };
 }
- 
-

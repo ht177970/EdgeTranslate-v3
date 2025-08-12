@@ -76,7 +76,7 @@ function generateURLRequest(requestData) {
         parts.push(`${k}=${v}`);
     }
     return parts.join("&");
- }
+}
 
 /**
  *
