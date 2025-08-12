@@ -175,6 +175,17 @@ html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
   display: block;
 }
 
+/* Override PDF.js rule that hides button spans */
+#etThemeToggle > span {
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#etThemeToggle {
+  gap: 6px;
+}
+
 /* PDF.js menus and doorhangers */
 html[data-theme] .doorHanger,
 html[data-theme] .doorHangerRight,
