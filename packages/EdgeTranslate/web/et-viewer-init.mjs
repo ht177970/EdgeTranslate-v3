@@ -8,18 +8,16 @@ if (!globalThis.pdfjsLib) {
 
 // Soften noisy runtime errors coming from icon downloads in some environments
 try {
-  // Filter a known, harmless rejection thrown by icon preloads
+  const isHarmlessIconError = (val) => {
+    const msg = String(val && (val.message || val));
+    return msg.includes('Unable to download all specified images');
+  };
   window.addEventListener('unhandledrejection', (event) => {
-    const msg = String(event.reason && (event.reason.message || event.reason))
-    if (msg && msg.includes('Unable to download all specified images')) {
-      event.preventDefault();
-    }
+    if (isHarmlessIconError(event.reason)) event.preventDefault();
   });
-  // Optional: suppress console error spam for the same case
   const origErr = console.error;
   console.error = function (...args) {
-    const text = args.map((v) => (typeof v === 'string' ? v : (v && v.message) || '')).join(' ');
-    if (text && text.includes('Unable to download all specified images')) return;
+    if (args.some(isHarmlessIconError)) return;
     return origErr.apply(this, args);
   };
 } catch {}
@@ -30,6 +28,7 @@ try {
 
 // Prepare URL before loading viewer.mjs, following official behavior where file param drives initial load
 (async () => {
+  const DEBUG = false;
   // Apply persisted theme early to avoid FOUC
   try {
     // Determine desired mode from our own preference or system
@@ -94,11 +93,16 @@ try {
     }
   }
 
-  // Load official viewer once URL is finalized
-  const script = document.createElement('script');
-  script.type = 'module';
-  script.src = 'viewer.mjs';
-  document.head.appendChild(script);
+  // Load official viewer once URL is finalized (avoid duplicate insert)
+  const ensureViewerLoaded = () => {
+    if (document.getElementById('et-viewer-loader')) return;
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'viewer.mjs';
+    script.id = 'et-viewer-loader';
+    document.head.appendChild(script);
+  };
+  ensureViewerLoaded();
 
   // Setup theme toggle (robust to readyState)
   const setupThemeToggle = () => {
@@ -125,10 +129,8 @@ try {
     let current = document.documentElement.getAttribute('data-theme');
     if (current !== 'dark' && current !== 'light') {
       current = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      applyTheme(current);
-    } else {
-      applyTheme(current);
     }
+    applyTheme(current);
 
     btn.addEventListener('click', () => {
       const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -154,6 +156,7 @@ try {
     // Debounced ResizeObserver update to avoid mutation-loops
     let roFramePending = false;
     let lastDesiredNoScroll = null;
+    let lastMenuWidth = 0;
     const measureAndMutate = () => {
       roFramePending = false;
       const needsScroll = container.scrollHeight > container.clientHeight + 1;
@@ -172,7 +175,7 @@ try {
     // Observe size changes (menu open/close, window resize, localization)
     const ro = new ResizeObserver(() => scheduleUpdate());
     ro.observe(container);
-    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('resize', scheduleUpdate, { passive: true });
 
     // Restore: only assign grouping classes, do not render background cards
     const applyGroupClasses = () => {
@@ -230,57 +233,59 @@ try {
     mo.observe(container, { childList: true, subtree: false, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
 
     // Diagnose elements that overflow horizontally (for fixing right-side hover bleed)
-    const diagnoseOverflow = () => {
+    const diagnoseOverflow = DEBUG ? () => {
       const containerRect = container.getBoundingClientRect();
-      const containerComputed = getComputedStyle(container);
-      const padLeft = parseFloat(containerComputed.paddingLeft) || 0;
-      const padRight = parseFloat(containerComputed.paddingRight) || 0;
-      const limit = containerRect.width - padLeft - padRight + 0.5; // tolerance
+      const cs = getComputedStyle(container);
+      const limit = containerRect.width - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) + 0.5;
       container.querySelectorAll('.et-overflow').forEach(n => n.classList.remove('et-overflow'));
       const rows = [];
       for (const el of Array.from(container.children)) {
-        if (!(el.matches('button.toolbarButton, a.toolbarButton, .horizontalToolbarSeparator, .visibleMediumView'))) continue;
-        const cs = getComputedStyle(el);
-        const margin = (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0);
+        if (!(el.matches && el.matches('button.toolbarButton, a.toolbarButton, .horizontalToolbarSeparator, .visibleMediumView')))
+          continue;
+        const m = getComputedStyle(el);
+        const margin = (parseFloat(m.marginLeft) || 0) + (parseFloat(m.marginRight) || 0);
         const width = el.scrollWidth + margin;
-        const id = el.id || (el.className || '').toString();
         if (width > limit) {
           el.classList.add('et-overflow');
-          rows.push({ id, width: Math.round(width), limit: Math.round(limit) });
+          rows.push({ id: el.id || (el.className || '').toString(), width: Math.round(width), limit: Math.round(limit) });
         }
       }
-      if (rows.length) {
-        try { console.table(rows); } catch { console.log(rows); }
+      if (rows.length) { try { console.table(rows); } catch { console.log(rows); } }
+    } : () => {};
+
+    // Run when the menu is opened and size it to the longest visible item
+    const computeMenuWidth = () => {
+      let maxWidth = 0;
+      const list = Array.from(container.children);
+      for (const el of list) {
+        if (!el.matches || !el.matches('button.toolbarButton, a.toolbarButton, .visibleMediumView > button.toolbarButton')) continue;
+        const rect = el.getBoundingClientRect();
+        maxWidth = Math.max(maxWidth, rect.width);
+      }
+      if (maxWidth > 0) {
+        const vw = document.documentElement.clientWidth;
+        const finalWidth = Math.min(maxWidth + 16, vw - 16);
+        menu.style.width = `${Math.max(220, Math.floor(finalWidth))}px`;
       }
     };
 
-    // Run when the menu is opened and size it to the longest visible item
     const openedCheck = () => {
       if (menu && !menu.classList.contains('hidden')) {
         requestAnimationFrame(() => {
           diagnoseOverflow();
           try {
-            // Measure longest visible item width
-            let maxWidth = 0;
-            const pad = 16; // account for inline paddings
-            for (const el of Array.from(container.children)) {
-              if (!el.matches || !el.matches('button.toolbarButton, a.toolbarButton, .visibleMediumView > button.toolbarButton')) continue;
-              const rect = el.getBoundingClientRect();
-              maxWidth = Math.max(maxWidth, rect.width);
-            }
-            if (maxWidth > 0) {
-              // Clamp to viewport
-              const vw = document.documentElement.clientWidth;
-              const finalWidth = Math.min(maxWidth + pad, vw - 16);
-              menu.style.width = `${Math.max(220, Math.floor(finalWidth))}px`;
-            }
+            const before = lastMenuWidth;
+            computeMenuWidth();
+            const after = parseFloat(menu.style.width) || 0;
+            if (after && Math.abs(after - before) <= 1) return;
+            lastMenuWidth = after || lastMenuWidth;
           } catch {}
         });
       }
     };
     const menuObs = new MutationObserver(openedCheck);
     if (menu) menuObs.observe(menu, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
-    window.addEventListener('resize', openedCheck);
+    window.addEventListener('resize', openedCheck, { passive: true });
 
     return true;
   };
@@ -296,5 +301,6 @@ try {
     trySetupToolbar();
   }
 })();
+
 
 
