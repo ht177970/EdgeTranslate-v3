@@ -45,11 +45,104 @@ class TranslatorManager {
          */
         this.TTS_SPEED = "fast";
 
+        // In-memory caches and options to avoid redundant network requests
+        this.cacheOptions = {
+            maxEntries: 300,
+            detectTtlMs: 10 * 60 * 1000, // 10 minutes
+            translateTtlMs: 30 * 60 * 1000, // 30 minutes
+            maxKeyTextLength: 500,
+            debounceWindowMs: 250,
+        };
+        this.detectCache = new Map(); // key -> { value, expireAt }
+        this.translationCache = new Map(); // key -> { value, expireAt }
+        this.inflightDetect = new Map(); // key -> Promise
+        this.inflightTranslate = new Map(); // key -> Promise
+        this.lastTranslateKey = null;
+        this.lastTranslateAt = 0;
+
         /**
          * Start to provide services and listen to event.
          */
         this.provideServices();
         this.listenToEvents();
+    }
+
+    /**
+     * Clear caches when configuration or language settings change
+     */
+    clearCaches() {
+        this.detectCache.clear();
+        this.translationCache.clear();
+    }
+
+    /**
+     * Normalize text for cache key usage: trim, collapse spaces, and length-limit
+     */
+    normalizeKeyText(text) {
+        if (typeof text !== "string") return "";
+        const collapsed = text.trim().replace(/\s+/g, " ");
+        if (collapsed.length <= this.cacheOptions.maxKeyTextLength) return collapsed;
+        return collapsed.slice(0, this.cacheOptions.maxKeyTextLength);
+    }
+
+    makeDetectKey(text) {
+        return this.normalizeKeyText(text);
+    }
+
+    makeTranslateKey(text, sl, tl, translatorId) {
+        const norm = this.normalizeKeyText(text);
+        return `${translatorId}||${sl}||${tl}||${norm}`;
+    }
+
+    /** Get from cache with TTL check and LRU touch */
+    getFromCache(map, key) {
+        const entry = map.get(key);
+        if (!entry) return null;
+        const now = Date.now();
+        if (entry.expireAt && entry.expireAt <= now) {
+            map.delete(key);
+            return null;
+        }
+        // Touch for LRU behavior: re-insert to back
+        map.delete(key);
+        map.set(key, entry);
+        return entry.value;
+    }
+
+    /** Set cache entry with TTL and simple LRU eviction */
+    setCacheEntry(map, key, value, ttlMs) {
+        try {
+            const expireAt = ttlMs ? Date.now() + ttlMs : 0;
+            if (map.has(key)) map.delete(key);
+            map.set(key, { value, expireAt });
+            const max = this.cacheOptions.maxEntries;
+            if (map.size > max) {
+                // delete oldest entry
+                const oldestKey = map.keys().next().value;
+                if (oldestKey !== undefined) map.delete(oldestKey);
+            }
+        } catch {}
+    }
+
+    getDetectionFromCache(text) {
+        const key = this.makeDetectKey(text);
+        return this.getFromCache(this.detectCache, key);
+    }
+
+    rememberDetection(text, lang) {
+        if (!text || !lang) return;
+        const key = this.makeDetectKey(text);
+        this.setCacheEntry(this.detectCache, key, lang, this.cacheOptions.detectTtlMs);
+    }
+
+    getTranslationFromCache(text, sl, tl, translatorId) {
+        const key = this.makeTranslateKey(text, sl, tl, translatorId);
+        return this.getFromCache(this.translationCache, key);
+    }
+
+    rememberTranslation(text, sl, tl, translatorId, result) {
+        const key = this.makeTranslateKey(text, sl, tl, translatorId);
+        this.setCacheEntry(this.translationCache, key, result, this.cacheOptions.translateTtlMs);
     }
 
     /**
@@ -129,6 +222,7 @@ class TranslatorManager {
                         this.HYBRID_TRANSLATOR.useConfig(
                             changes["HybridTranslatorConfig"].newValue
                         );
+                        this.clearCaches();
                     }
 
                     if (changes["OtherSettings"]) {
@@ -137,10 +231,15 @@ class TranslatorManager {
 
                     if (changes["languageSetting"]) {
                         this.LANGUAGE_SETTING = changes["languageSetting"].newValue;
+                        this.clearCaches();
                     }
 
                     if (changes["DefaultTranslator"]) {
                         this.DEFAULT_TRANSLATOR = changes["DefaultTranslator"].newValue;
+                        this.clearCaches();
+                        // also clear inflight to avoid dangling promises keyed by old translator
+                        this.inflightDetect.clear();
+                        this.inflightTranslate.clear();
                     }
                 }
             }).bind(this)
@@ -215,8 +314,20 @@ class TranslatorManager {
     async detect(text) {
         // Ensure that configurations have been initialized.
         await this.config_loader;
-
-        return this.TRANSLATORS[this.DEFAULT_TRANSLATOR].detect(text);
+        if (!text) return "";
+        const cached = this.getDetectionFromCache(text);
+        if (cached) return cached;
+        const key = this.makeDetectKey(text);
+        if (this.inflightDetect.has(key)) return this.inflightDetect.get(key);
+        const promise = this.TRANSLATORS[this.DEFAULT_TRANSLATOR]
+            .detect(text)
+            .then((detected) => {
+                if (detected) this.rememberDetection(text, detected);
+                return detected;
+            })
+            .finally(() => this.inflightDetect.delete(key));
+        this.inflightDetect.set(key, promise);
+        return promise;
     }
 
     /**
@@ -258,12 +369,13 @@ class TranslatorManager {
             timestamp,
         });
 
-        let sl = this.LANGUAGE_SETTING.sl,
-            tl = this.LANGUAGE_SETTING.tl;
+        let sl = this.LANGUAGE_SETTING.sl;
+        let tl = this.LANGUAGE_SETTING.tl;
 
         try {
             if (sl !== "auto" && this.IN_MUTUAL_MODE) {
                 // mutual translate mode, detect language first.
+                // try cache first inside detect()
                 sl = await this.detect(text);
                 switch (sl) {
                     case this.LANGUAGE_SETTING.sl:
@@ -278,8 +390,36 @@ class TranslatorManager {
                 }
             }
 
-            // Do translate.
-            let result = await this.TRANSLATORS[this.DEFAULT_TRANSLATOR].translate(text, sl, tl);
+            // Debounce burst calls of same key within a window
+            const translatorId = this.DEFAULT_TRANSLATOR;
+            const key = this.makeTranslateKey(text, sl, tl, translatorId);
+            const now = Date.now();
+            if (
+                this.lastTranslateKey === key &&
+                now - this.lastTranslateAt < this.cacheOptions.debounceWindowMs
+            ) {
+                // Skip duplicate immediate calls; relying on cache/inflight
+            }
+            this.lastTranslateKey = key;
+            this.lastTranslateAt = now;
+
+            // Try translation cache first
+            let result = this.getTranslationFromCache(text, sl, tl, translatorId);
+            if (!result) {
+                if (this.inflightTranslate.has(key)) {
+                    result = await this.inflightTranslate.get(key);
+                } else {
+                    const promise = this.TRANSLATORS[translatorId]
+                        .translate(text, sl, tl)
+                        .then((res) => {
+                            if (res) this.rememberTranslation(text, sl, tl, translatorId, res);
+                            return res;
+                        })
+                        .finally(() => this.inflightTranslate.delete(key));
+                    this.inflightTranslate.set(key, promise);
+                    result = await promise;
+                }
+            }
             result.sourceLanguage = sl;
             result.targetLanguage = tl;
 
@@ -403,6 +543,9 @@ class TranslatorManager {
         const newConfig = this.HYBRID_TRANSLATOR.updateConfigFor(detail.from, detail.to);
         // Update config.
         chrome.storage.sync.set({ HybridTranslatorConfig: newConfig });
+
+        // Clear caches as language pairing changed
+        this.clearCaches();
 
         // If current default translator does not support new language setting, update it.
         if (!new Set(availableTranslators).has(selectedTranslator)) {

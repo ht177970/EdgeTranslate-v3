@@ -42,12 +42,29 @@ try {
     let target;
     try { target = new URL(rawUrl, location.href); } catch { target = null; }
 
-    if (target && target.origin !== location.origin) {
+    const isBlobUrl = typeof rawUrl === 'string' && rawUrl.startsWith('blob:');
+    const sourceParam = params.get('source');
+
+    // If we're reloading with a blob: URL, rehydrate it from original source when available
+    if (isBlobUrl && sourceParam) {
+      try {
+        const original = decodeURIComponent(sourceParam);
+        const res = await fetch(original);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        params.set('file', encodeURIComponent(blobUrl));
+        history.replaceState(null, '', urlObj.pathname + '?' + params.toString() + urlObj.hash);
+      } catch (e) {
+        console.warn('[EdgeTranslate] PDF blob rehydration failed:', e);
+      }
+    } else if (target && target.origin !== location.origin && !isBlobUrl) {
       // Cross-origin: preload then point file param at same-origin blob URL before viewer runs
       try {
         const res = await fetch(target.href);
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
+        // Preserve original URL for refresh recovery
+        params.set('source', encodeURIComponent(target.href));
         params.set('file', encodeURIComponent(blobUrl));
         history.replaceState(null, '', urlObj.pathname + '?' + params.toString() + urlObj.hash);
       } catch (e) {

@@ -68,7 +68,8 @@ try {
 
         // 확장 뷰어 URL 구성: web/viewer.html?file=<encoded>
         // cross-origin 파일을 viewer가 fetch->blob으로 열 수 있게 file 파라미터만 전달
-        const viewerUrl = chrome.runtime.getURL(`web/viewer.html?file=${encodeURIComponent(url)}`);
+    // Pass original source as source param to allow blob rehydration on refresh
+    const viewerUrl = chrome.runtime.getURL(`web/viewer.html?file=${encodeURIComponent(url)}&source=${encodeURIComponent(url)}`);
 
         // 탭 업데이트로 리디렉션
         try {
@@ -718,12 +719,17 @@ if (typeof URL !== "undefined" && !URL.createObjectURL) {
 /**
  * Setup context menus - moved inside onInstalled to work with service worker
  */
-function setupContextMenus() {
-    chrome.contextMenus.create({
+ let contextMenusInitialized = false;
+
+ function setupContextMenus() {
+    if (contextMenusInitialized) return;
+    // Clear existing menus first to avoid duplicate id errors on SW restart/reload
+    const createAll = () => {
+        chrome.contextMenus.create({
         id: "translate",
         title: `${chrome.i18n.getMessage("Translate")} '%s'`,
         contexts: ["selection"],
-    });
+        });
 
     // Add an entry to options page for Firefox as it doesn't have one.
     if (BROWSER_ENV === "firefox") {
@@ -734,55 +740,68 @@ function setupContextMenus() {
         });
     }
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "shortcut",
         title: chrome.i18n.getMessage("ShortcutSetting"),
         contexts: ["action"],
-    });
+        });
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "translate_page",
         title: chrome.i18n.getMessage("TranslatePage"),
         contexts: ["page"],
-    });
+        });
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "translate_page_google",
         title: chrome.i18n.getMessage("TranslatePageGoogle"),
         contexts: ["action"],
-    });
+        });
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "add_url_blacklist",
         title: chrome.i18n.getMessage("AddUrlBlacklist"),
         contexts: ["action"],
         enabled: false,
         visible: false,
-    });
+        });
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "add_domain_blacklist",
         title: chrome.i18n.getMessage("AddDomainBlacklist"),
         contexts: ["action"],
         enabled: false,
         visible: false,
-    });
+        });
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "remove_url_blacklist",
         title: chrome.i18n.getMessage("RemoveUrlBlacklist"),
         contexts: ["action"],
         enabled: false,
         visible: false,
-    });
+        });
 
-    chrome.contextMenus.create({
+        chrome.contextMenus.create({
         id: "remove_domain_blacklist",
         title: chrome.i18n.getMessage("RemoveDomainBlacklist"),
         contexts: ["action"],
         enabled: false,
         visible: false,
-    });
+        });
+
+        contextMenusInitialized = true;
+    };
+
+    try {
+        chrome.contextMenus.removeAll(() => {
+            // ensure lastError is consumed if present, then create
+            void chrome.runtime.lastError;
+            createAll();
+        });
+    } catch {
+        createAll();
+    }
 }
 
 /**
