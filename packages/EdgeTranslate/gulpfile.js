@@ -188,6 +188,30 @@ function manifest() {
     return gulp
         .src("./src/manifest.json", { base: "src" })
         .pipe(merge_json(manifest_patch))
+        .pipe(
+            through.obj(function (file, enc, callback) {
+                try {
+                    if (browser === "safari") {
+                        const manifestJson = JSON.parse(file.contents.toString(enc));
+                        // Remove unsupported keys for Safari
+                        if (manifestJson.background && manifestJson.background.type) {
+                            delete manifestJson.background.type;
+                        }
+                        if (manifestJson.options_ui && manifestJson.options_ui.open_in_tab !== undefined) {
+                            delete manifestJson.options_ui.open_in_tab;
+                        }
+                        if (Array.isArray(manifestJson.permissions)) {
+                            manifestJson.permissions = manifestJson.permissions.filter((p) => p !== "notifications");
+                        }
+                        file.contents = Buffer.from(JSON.stringify(manifestJson));
+                    }
+                } catch (e) {
+                    log(e);
+                }
+                this.push(file);
+                callback();
+            })
+        )
         .pipe(gulp.dest(output_dir));
 }
 
