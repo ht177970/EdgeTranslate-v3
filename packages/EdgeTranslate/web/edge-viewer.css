@@ -9,6 +9,7 @@
   --et-text: #e6ebf1;
   --et-muted: #9aa6b2;
   --et-border: #2a2f37;
+  --et-radius: 10px;
   /* Align custom controls to PDF.js toolbar height */
 }
 
@@ -45,10 +46,10 @@ html, body {
   background: transparent;
   color: var(--et-text);
   border: 1px solid var(--et-border);
-  border-radius: 10px;
-  padding: 6px 10px;
+  border-radius: var(--et-radius);
+  padding: 0 10px;
   height: var(--toolbar-height);
-  line-height: calc(var(--toolbar-height) - 12px);
+  box-sizing: border-box;
 }
 
 .toolbar button.toolbarButton:hover,
@@ -167,6 +168,9 @@ html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
   align-items: center;
   justify-content: center;
   color: var(--et-text);
+  height: var(--toolbar-height);
+  padding: 0 8px;
+  box-sizing: border-box;
 }
 
 #etThemeToggle svg {
@@ -201,6 +205,8 @@ html[data-theme] #findbar {
   background: var(--doorhanger-bg-color) !important;
   color: var(--et-text) !important;
   border-color: var(--doorhanger-separator-color) !important;
+  border-radius: var(--et-radius) !important;
+  overflow: hidden;
 }
 
 /* Menu button aesthetics */
@@ -209,7 +215,7 @@ html[data-theme] .menuContainer button {
   background-color: var(--menu-bg-color) !important;
   color: var(--menuitem-fg-color) !important;
   border: 1px solid var(--menu-button-border-color) !important;
-  border-radius: 8px !important;
+  border-radius: var(--et-radius) !important;
 }
 
 html[data-theme] #secondaryToolbar .menuContainer button:hover,
@@ -259,6 +265,7 @@ html[data-theme] #findbar input {
   height: var(--toolbar-height);
   display: inline-flex;
   align-items: center;
+  box-sizing: border-box;
 }
 
 #scaleSelectContainer select#scaleSelect {
