@@ -114,7 +114,17 @@ function scoreVoiceFor(langBCP47, voice) {
     ];
     if (novelty.some((k) => name.includes(k))) score -= 12;
     // Penalize Eloquence series for more natural output
-    const eloquence = ["eloquence", "eddy", "flo", "grandma", "grandpa", "reed", "rocko", "sandy", "shelley"];
+    const eloquence = [
+        "eloquence",
+        "eddy",
+        "flo",
+        "grandma",
+        "grandpa",
+        "reed",
+        "rocko",
+        "sandy",
+        "shelley",
+    ];
     if (eloquence.some((k) => name.includes(k) || voiceUri.includes(k))) score -= 8;
     // Keep engine hints mild to avoid large cross-browser differences
     if (name.includes("neural") || name.includes("natural")) score += 2;
