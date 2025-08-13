@@ -22,9 +22,20 @@ try {
   };
 } catch {}
 
+// Disable drag-and-drop open behavior inside the viewer
 try {
-  PDFJS.GlobalWorkerOptions.workerSrc = '../build/build/pdf.worker.mjs';
+  const block = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+  };
+  window.addEventListener('dragover', block);
+  window.addEventListener('drop', block);
 } catch {}
+
+  try {
+    // Safari 리소스 경로 보정: viewer.html과 동일 디렉터리의 viewer.mjs가 pdf.worker 경로를 상대해 로드하도록 설정
+    PDFJS.GlobalWorkerOptions.workerSrc = 'viewer.mjs';
+  } catch {}
 
 // Prepare URL before loading viewer.mjs, following official behavior where file param drives initial load
 (async () => {
@@ -48,6 +59,18 @@ try {
     // Apply immediately so UI paints correctly before viewer init
     document.documentElement.style.colorScheme = saved;
     document.documentElement.setAttribute('data-theme', saved);
+    try {
+      const setThemeMeta = (mode) => {
+        let tag = document.querySelector('meta[name="theme-color"]');
+        if (!tag) {
+          tag = document.createElement('meta');
+          tag.setAttribute('name', 'theme-color');
+          document.head.appendChild(tag);
+        }
+        tag.setAttribute('content', mode === 'dark' ? '#101317' : '#f6f8fb');
+      };
+      setThemeMeta(saved);
+    } catch {}
   } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
@@ -113,6 +136,15 @@ try {
       // Update document styles
       document.documentElement.style.colorScheme = mode;
       document.documentElement.setAttribute('data-theme', mode);
+      try {
+        let tag = document.querySelector('meta[name="theme-color"]');
+        if (!tag) {
+          tag = document.createElement('meta');
+          tag.setAttribute('name', 'theme-color');
+          document.head.appendChild(tag);
+        }
+        tag.setAttribute('content', mode === 'dark' ? '#101317' : '#f6f8fb');
+      } catch {}
       // Persist in both our storage and PDF.js preferences
       try {
         localStorage.setItem('et_viewer_theme', mode);
