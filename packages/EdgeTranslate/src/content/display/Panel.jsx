@@ -188,7 +188,13 @@ export default function ResultPanel() {
                             if (voice) utter.voice = voice;
                             // 한국어는 너무 빠르게 들리는 경향 보정
                             const isKorean = (utter.lang || "").toLowerCase().startsWith("ko");
-                            utter.rate = isKorean ? (speed === "fast" ? 0.9 : 0.7) : speed === "fast" ? 1.0 : 0.8;
+                            utter.rate = isKorean
+                                ? speed === "fast"
+                                    ? 0.9
+                                    : 0.7
+                                : speed === "fast"
+                                ? 1.0
+                                : 0.8;
                             // 약간의 톤 보정
                             utter.pitch = 1.0;
                         } catch {}
