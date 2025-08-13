@@ -6,7 +6,7 @@ import {
     removeDomainBlacklist,
     updateBLackListMenu,
 } from "./library/blacklist.js";
-import { sendHitRequest } from "./library/analytics.js";
+// Analytics removed
 import { wrapConsoleForFiltering, logWarn, logInfo } from "common/scripts/logger.js";
 import { promiseTabs } from "common/scripts/promise.js";
 import Channel from "common/scripts/channel.js";
@@ -836,13 +836,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
                 });
             }
 
-            // 尝试发送安装事件
-            setTimeout(() => {
-                sendHitRequest("background", "event", {
-                    ec: "installation", // event category
-                    ea: "installation", // event label
-                });
-            }, 10 * 60 * 1000); // 10 min
+            // Analytics removed
         } else if (details.reason === "update") {
             await new Promise((resolve) => {
                 chrome.storage.sync.get((result) => {
@@ -1054,10 +1048,7 @@ chrome.commands.onCommand.addListener((command) => {
  * may work without these modifications, or alternative solutions need to be implemented.
  */
 
-// send basic hit data to google analytics
-setTimeout(() => {
-    sendHitRequest("background", "pageview", null);
-}, 60 * 1000);
+// Analytics removed
 
 /**
  * dynamic importing hot reload function only in development env

@@ -26,7 +26,7 @@ const DEFAULT_SETTINGS = {
         TranslateAfterDblClick: false,
         TranslateAfterSelect: false,
         CancelTextSelection: false,
-        UseGoogleAnalytics: true,
+        UseGoogleAnalytics: false,
     },
     DefaultTranslator: "GoogleTranslate",
     DefaultPageTranslator: "GooglePageTranslate",
