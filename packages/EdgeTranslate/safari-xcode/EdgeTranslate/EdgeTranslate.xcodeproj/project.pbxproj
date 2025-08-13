@@ -22,9 +22,7 @@
 		9BA8CF352E4BB01D008E2B4C /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF282E4BB01D008E2B4C /* popup */; };
 		9BA8CF362E4BB01D008E2B4C /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF292E4BB01D008E2B4C /* LICENSE */; };
 		9BA8CF372E4BB01D008E2B4C /* web in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2A2E4BB01D008E2B4C /* web */; };
-		9BA8CF382E4BB01D008E2B4C /* google in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2B2E4BB01D008E2B4C /* google */; };
-		9BA8CF392E4BB01D008E2B4C /* content in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2C2E4BB01D008E2B4C /* content */; };
-		9BA8CF3A2E4BB01D008E2B4C /* 209.js in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2D2E4BB01D008E2B4C /* 209.js */; };
+        9BA8CF392E4BB01D008E2B4C /* content in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2C2E4BB01D008E2B4C /* content */; };
 		9BA8CF3B2E4BB01D008E2B4C /* rules.json in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2E2E4BB01D008E2B4C /* rules.json */; };
 		9BA8CF3C2E4BB01D008E2B4C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF2F2E4BB01D008E2B4C /* manifest.json */; };
 		9BA8CF3D2E4BB01D008E2B4C /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = 9BA8CF302E4BB01D008E2B4C /* _locales */; };
@@ -74,10 +72,8 @@
 		9BA8CF272E4BB01D008E2B4C /* options */ = {isa = PBXFileReference; lastKnownFileType = folder; name = options; path = Resources/options; sourceTree = "<group>"; };
 		9BA8CF282E4BB01D008E2B4C /* popup */ = {isa = PBXFileReference; lastKnownFileType = folder; name = popup; path = Resources/popup; sourceTree = "<group>"; };
 		9BA8CF292E4BB01D008E2B4C /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; name = LICENSE; path = Resources/LICENSE; sourceTree = "<group>"; };
-		9BA8CF2A2E4BB01D008E2B4C /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; name = web; path = Resources/web; sourceTree = "<group>"; };
-		9BA8CF2B2E4BB01D008E2B4C /* google */ = {isa = PBXFileReference; lastKnownFileType = folder; name = google; path = Resources/google; sourceTree = "<group>"; };
-		9BA8CF2C2E4BB01D008E2B4C /* content */ = {isa = PBXFileReference; lastKnownFileType = folder; name = content; path = Resources/content; sourceTree = "<group>"; };
-		9BA8CF2D2E4BB01D008E2B4C /* 209.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = 209.js; path = Resources/209.js; sourceTree = "<group>"; };
+        9BA8CF2A2E4BB01D008E2B4C /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; name = web; path = Resources/web; sourceTree = "<group>"; };
+        9BA8CF2C2E4BB01D008E2B4C /* content */ = {isa = PBXFileReference; lastKnownFileType = folder; name = content; path = Resources/content; sourceTree = "<group>"; };
 		9BA8CF2E2E4BB01D008E2B4C /* rules.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = rules.json; path = Resources/rules.json; sourceTree = "<group>"; };
 		9BA8CF2F2E4BB01D008E2B4C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
 		9BA8CF302E4BB01D008E2B4C /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; name = _locales; path = Resources/_locales; sourceTree = "<group>"; };
@@ -162,10 +158,8 @@
 				9BA8CF272E4BB01D008E2B4C /* options */,
 				9BA8CF282E4BB01D008E2B4C /* popup */,
 				9BA8CF292E4BB01D008E2B4C /* LICENSE */,
-				9BA8CF2A2E4BB01D008E2B4C /* web */,
-				9BA8CF2B2E4BB01D008E2B4C /* google */,
+                9BA8CF2A2E4BB01D008E2B4C /* web */,
 				9BA8CF2C2E4BB01D008E2B4C /* content */,
-				9BA8CF2D2E4BB01D008E2B4C /* 209.js */,
 				9BA8CF2E2E4BB01D008E2B4C /* rules.json */,
 				9BA8CF2F2E4BB01D008E2B4C /* manifest.json */,
 				9BA8CF302E4BB01D008E2B4C /* _locales */,
@@ -275,13 +269,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9BA8CF372E4BB01D008E2B4C /* web in Resources */,
-				9BA8CF382E4BB01D008E2B4C /* google in Resources */,
+                9BA8CF372E4BB01D008E2B4C /* web in Resources */,
 				9BA8CF3C2E4BB01D008E2B4C /* manifest.json in Resources */,
 				9BA8CF392E4BB01D008E2B4C /* content in Resources */,
 				9BA8CF3B2E4BB01D008E2B4C /* rules.json in Resources */,
 				9BA8CF352E4BB01D008E2B4C /* popup in Resources */,
-				9BA8CF3A2E4BB01D008E2B4C /* 209.js in Resources */,
 				9BA8CF332E4BB01D008E2B4C /* background in Resources */,
 				9BA8CF362E4BB01D008E2B4C /* LICENSE in Resources */,
 				9BA8CF3E2E4BB01D008E2B4C /* build in Resources */,
