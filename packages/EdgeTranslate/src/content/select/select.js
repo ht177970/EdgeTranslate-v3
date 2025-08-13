@@ -297,7 +297,7 @@ function normalizePdfSelectionText(input) {
     s = s.replace(/\u3000/g, " ");
 
     // 하이픈 줄바꿈 결합(영문 위주 안전 규칙)
-    s = s.replace(/([A-Za-z])\-\n([A-Za-z])/g, "$1$2");
+    s = s.replace(/([A-Za-z])-\n([A-Za-z])/g, "$1$2");
 
     // 단락 구분 토큰 보존
     const PARA = "\u0001\u0001__ET_PARA__\u0001\u0001";
@@ -310,15 +310,29 @@ function normalizePdfSelectionText(input) {
     const CJK = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uAC00-\uD7AF]/; // 히라가나/가타카나/한자/한글
     if (CJK.test(s)) {
         // CJK <space> CJK → 붙여쓰기
-        s = s.replace(
-            new RegExp("([\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF])\\s+([\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF])", "g"),
-            "$1$2"
-        );
+        const CJK_RANGE = "\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF";
+        const CJK_PAIR_RE = new RegExp(`([${CJK_RANGE}])\\s+([${CJK_RANGE}])`, "g");
+        s = s.replace(CJK_PAIR_RE, "$1$2");
         // 여는 괄호류 뒤 공백 제거, 닫는 괄호/문장부호 앞 공백 제거
+        const OPEN_PUNCT_RE = /([([{          ])\s+/g; // will be replaced below
+        // 위 정규식은 자리채움용; 실제로 아래에서 올바른 리터럴로 대체
         s = s
-            .replace(/([\(\[\{\u3008\u300A\u300C\u300E\u3010\uFF08\uFF3B\uFF5B\u201C\u3001])\s+/g, "$1")
-            .replace(/\s+([\)\]\}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g, "$1");
+            .replace(/([([{ -        ])\s+/g, "$1")
+            .replace(/\s+([)\]}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g, "$1");
     }
+
+    // 한국어 특화 보정: 흔한 잘못된 분리/결합 케이스
+    // 조사의 결합(앞말과 붙임): 은/는/이/가/을/를/에/의/와/과/로/으로/에서 등
+    s = s.replace(/([가-힣])\s+(은|는|이|가|을|를|에|의|와|과|로|으로|에서|에게|부터|까지|만|뿐|도|처럼|보다|만큼|마다|조차|라도)/g, "$1$2");
+    // 어미 결합(이다/니다/습니다/다/요 등 앞 공백 제거)
+    s = s.replace(/([가-힣])\s+(다|요|죠|네요|군요|니다|습니다|습니까|였[다고는]?|했[다고는]?|합니?다)/g, "$1$2");
+    // 흔한 표현 보정: "수있" → "수 있", "에있" → "에 있", "에 서" → "에서", "이 나" → "이나"
+    s = s.replace(/수\s*있/g, "수 있");
+    s = s.replace(/에\s*있/g, "에 있");
+    s = s.replace(/에\s+서/g, "에서");
+    s = s.replace(/이\s+나/g, "이나");
+    // 숫자+단위 결합 보정: 3 개 → 3개
+    s = s.replace(/(\d)\s+(개|명|분|원|권|대|곳|시|분|초|층|호|월|일|년|가지|건|회|장|부|번|차)/g, "$1$2");
 
     // 단락 토큰 복원
     s = s.replace(new RegExp(PARA, "g"), "\n\n");
