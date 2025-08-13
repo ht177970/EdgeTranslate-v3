@@ -1,11 +1,11 @@
 ## EdgeTranslate-v3（MV3）
 
 查看其他语言版本：
-- English: ../README.md
-- 简体中文: ./README_CN.md
-- 繁體中文: ./README_TW.md
-- 日本語: ./README_JA.md
-- 한국어: ./README_KO.md
+- [English](../README.md)
+- [简体中文](./README_CN.md)
+- [繁體中文](./README_TW.md)
+- [日本語](./README_JA.md)
+- [한국어](./README_KO.md)
 
 本项目是 Edge Translate 的分支，已按 Manifest V3 全面重构，并适配当前浏览器政策与构建流程。在原始 MV2 版本因政策下架后，本项目对代码与构建进行了现代化处理，以延续相同的使用体验并提升稳定性。
 
@@ -81,14 +81,7 @@ npm run safari:release
 ### 主机权限
 为实现常驻内容脚本（如选择翻译）需要全局主机权限。Chrome 使用 `host_permissions: ["*://*/*"]`；Firefox/Safari 通过 `<all_urls>` 匹配的内容脚本实现。扩展遵循最小权限原则。
 
-### 更新说明（摘要）
-- 2.7
-  - 新增 macOS Safari 支持（不含整页翻译）
-  - 提升 PDF 阅读器 UI，并加入页面深色模式（颜色反转）
-  - 改进 TTS 质量与选择逻辑
-  - 移除统计/分析（不收集数据）
-  - 新增韩语本地化并补齐多语言缺失文本
-  - MV3 重构与稳定性改进
+ 
 
 ### 文档
 - 原项目文档（整体功能参考）：

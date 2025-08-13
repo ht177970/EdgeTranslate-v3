@@ -1,11 +1,11 @@
 ## EdgeTranslate-v3 (MV3)
 
 다른 언어로 보기:
-- English: ../README.md
-- 简体中文: ./README_CN.md
-- 繁體中文: ./README_TW.md
-- 日本語: ./README_JA.md
-- 한국어: ./README_KO.md
+- [English](../README.md)
+- [简体中文](./README_CN.md)
+- [繁體中文](./README_TW.md)
+- [日本語](./README_JA.md)
+- [한국어](./README_KO.md)
 
 Edge Translate의 포크 프로젝트로, Manifest V3에 맞춰 전면 리팩터링하고 최신 브라우저 정책에 맞춘 안정성과 성능을 제공합니다. 원작이 MV2 중단 정책으로 스토어에서 내려간 이후 동일한 사용 경험을 이어가도록 코드와 빌드 시스템을 현대화했습니다.
 
@@ -81,14 +81,7 @@ App Store 계정 등 환경 변수 설정이 필요합니다.
 ### 호스트 권한
 선택 번역 등 상시 콘텐츠 스크립트 주입을 위해 전역 호스트 권한이 필요합니다. Chrome은 `host_permissions: ["*://*/*"]`를 사용하며, Firefox/Safari는 `<all_urls>`에 매칭되는 콘텐츠 스크립트를 사용합니다. 확장 프로그램은 최소 권한 원칙을 따릅니다.
 
-### 릴리스 노트(요약)
-- 2.7
-  - macOS Safari 지원(전체 페이지 번역 제외)
-  - PDF 뷰어 UI 개선 및 페이지 다크 모드(색 반전)
-  - TTS 품질/선택 로직 개선
-  - 통계 수집 기능 제거(개인정보 수집 없음)
-  - 한국어 로케일 추가 및 다국어 누락 보완
-  - MV3 리팩터링 및 안정성 향상
+ 
 
 ### 문서
 - 원작 문서(기능 전반 참고):

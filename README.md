@@ -6,10 +6,10 @@ A fork of Edge Translate refactored for Manifest V3, modern build tooling, and c
 - Current repo: https://github.com/Meapri/EdgeTranslate-v3
 
 View this page in other languages:
-- 简体中文: ./docs/README_CN.md
-- 繁體中文: ./docs/README_TW.md
-- 日本語: ./docs/README_JA.md
-- 한국어: ./docs/README_KO.md
+- [简体中文](./docs/README_CN.md)
+- [繁體中文](./docs/README_TW.md)
+- [日本語](./docs/README_JA.md)
+- [한국어](./docs/README_KO.md)
 
 ### Key Features
 - Selection translation with side popup: Shows results in a side panel so your reading flow isn’t interrupted. You can customize visible sections (common meanings, pronunciation, definitions/detailed explanations, examples, etc.) and pin the panel.
@@ -80,14 +80,7 @@ Build outputs
 ### Host Permissions
 Global host permissions are required for always-on content scripts (selection translation, etc.). Chrome uses `host_permissions: ["*://*/*"]`; Firefox/Safari use `<all_urls>`-matched content scripts. The extension adheres to a minimal-permissions approach.
 
-### Release Notes (summary)
-- 2.7
-  - Added macOS Safari support (excluding full-page translation)
-  - PDF viewer UI improvements and page dark mode (color inversion)
-  - TTS quality/selection improvements
-  - Removed analytics (no data collection)
-  - Added Korean locale and filled missing strings in other locales
-  - MV3 refactor and stability improvements
+ 
 
 ### Documentation
 - Original project docs (general feature reference):
