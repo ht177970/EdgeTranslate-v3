@@ -38,6 +38,10 @@ class TranslatorManager {
 
             // The default translator to use.
             this.DEFAULT_TRANSLATOR = configs.DefaultTranslator;
+            // Non-blocking warm-up to reduce first-translate latency
+            setTimeout(() => {
+                try { this.warmUpTranslators(); } catch {}
+            }, 0);
         });
 
         /**
@@ -78,11 +82,29 @@ class TranslatorManager {
     /**
      * Normalize text for cache key usage: trim, collapse spaces, and length-limit
      */
+    // Simple 32-bit FNV-1a hash for long keys
+    fnv1aHash32(input) {
+        try {
+            let hash = 0x811c9dc5;
+            for (let i = 0; i < input.length; i++) {
+                hash ^= input.charCodeAt(i);
+                hash = (hash +
+                    ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0;
+            }
+            return hash.toString(16).padStart(8, "0");
+        } catch {
+            return "00000000";
+        }
+    }
+
     normalizeKeyText(text) {
         if (typeof text !== "string") return "";
         const collapsed = text.trim().replace(/\s+/g, " ");
-        if (collapsed.length <= this.cacheOptions.maxKeyTextLength) return collapsed;
-        return collapsed.slice(0, this.cacheOptions.maxKeyTextLength);
+        const maxLen = this.cacheOptions.maxKeyTextLength;
+        if (collapsed.length <= maxLen) return collapsed;
+        const prefix = collapsed.slice(0, Math.max(24, Math.floor(maxLen / 2)));
+        const suffixHash = this.fnv1aHash32(collapsed);
+        return `${prefix}__${suffixHash}`;
     }
 
     makeDetectKey(text) {
@@ -211,6 +233,48 @@ class TranslatorManager {
             }
             return Promise.resolve();
         });
+    }
+
+    /**
+     * Warm up translators to minimize cold-start latency.
+     * Attempts lightweight operations (token fetch/detect tiny text) for default and configured translators.
+     */
+    async warmUpTranslators() {
+        try {
+            await this.config_loader;
+            const candidates = new Set();
+            if (this.DEFAULT_TRANSLATOR) candidates.add(this.DEFAULT_TRANSLATOR);
+            if (this.HYBRID_TRANSLATOR && this.HYBRID_TRANSLATOR.REAL_TRANSLATORS) {
+                Object.keys(this.HYBRID_TRANSLATOR.REAL_TRANSLATORS).forEach((k) => candidates.add(k));
+            }
+            const tinyText = "a";
+            const sl = "auto";
+            const tl = (this.LANGUAGE_SETTING && this.LANGUAGE_SETTING.tl) || "en";
+            const tasks = [];
+            for (const id of candidates) {
+                const t = this.TRANSLATORS[id];
+                if (!t) continue;
+                // Prefer explicit token update methods when available
+                if (typeof t.updateTokens === "function") {
+                    tasks.push(Promise.resolve().then(() => t.updateTokens()).catch(() => {}));
+                    continue;
+                }
+                if (typeof t.updateTKK === "function") {
+                    tasks.push(Promise.resolve().then(() => t.updateTKK()).catch(() => {}));
+                    continue;
+                }
+                // Fallback to a cheap detect call
+                if (typeof t.detect === "function") {
+                    tasks.push(Promise.resolve().then(() => t.detect(tinyText)).catch(() => {}));
+                }
+            }
+            // Run warm-ups with a soft timeout to avoid hanging
+            const softTimeout = (p, ms) => Promise.race([
+                p,
+                new Promise((resolve) => setTimeout(resolve, ms)),
+            ]);
+            await softTimeout(Promise.allSettled(tasks), 2500);
+        } catch {}
     }
 
     /**
