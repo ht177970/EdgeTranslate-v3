@@ -13,6 +13,12 @@
  * limitations under the License.
  */
 
+/* Vendor note (EdgeTranslate):
+ * 이 파일은 pdf.js 원본 viewer.css를 그대로 사용합니다.
+ * EdgeTranslate의 모든 커스텀 스타일은 반드시 edge-viewer.css에서 오버라이드하세요.
+ * (viewer.css는 업스트림 교체를 쉽게 하기 위해 수정 금지)
+ */
+
 .messageBar{
   --closing-button-icon:url(images/messageBar_closingButton.svg);
   --message-bar-close-button-color:var(--text-primary-color);
