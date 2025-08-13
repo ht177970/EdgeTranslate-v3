@@ -367,6 +367,8 @@ function safariRsync(done) {
             const googleDir = path.join(resourcesDir, "google");
             const vendor209 = path.join(resourcesDir, "209.js");
             if (!fs.existsSync(googleDir)) fs.mkdirSync(googleDir, { recursive: true });
+            const keep = path.join(googleDir, ".keep");
+            if (!fs.existsSync(keep)) fs.writeFileSync(keep, "stub");
             if (!fs.existsSync(vendor209)) fs.writeFileSync(vendor209, "");
         } catch (e) {}
         done();
