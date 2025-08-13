@@ -43,6 +43,7 @@ async function loadVoices() {
     if (existing && existing.length) {
         voicesLoaded = true;
         cachedVoices = existing;
+        debugLogVoicesOnce(existing);
         return existing;
     }
     return new Promise((resolve) => {
@@ -51,6 +52,7 @@ async function loadVoices() {
             cachedVoices = list;
             voicesLoaded = true;
             speechSynthesis.removeEventListener?.("voiceschanged", onVoices);
+            debugLogVoicesOnce(list);
             resolve(list);
         };
         speechSynthesis.addEventListener?.("voiceschanged", onVoices);
@@ -61,8 +63,10 @@ async function loadVoices() {
                 cachedVoices = list;
                 voicesLoaded = true;
                 speechSynthesis.removeEventListener?.("voiceschanged", onVoices);
+                debugLogVoicesOnce(list);
                 resolve(list);
             } else if (!voicesLoaded) {
+                debugLogVoicesOnce(list);
                 resolve(list);
             }
         }, 1000);
@@ -83,7 +87,41 @@ function normalizeBCP47(lang) {
 function isSafariUA() {
     if (typeof navigator === "undefined" || !navigator.userAgent) return false;
     const ua = navigator.userAgent;
-    return /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+    return (
+        /Safari\//.test(ua) &&
+        !/Chrome\//.test(ua) &&
+        !/Chromium\//.test(ua) &&
+        !/Edg\//.test(ua)
+    );
+}
+
+let hasLoggedVoices = false;
+function debugLogVoicesOnce(list) {
+    if (hasLoggedVoices) return;
+    try {
+        hasLoggedVoices = true;
+        const rows = (list || []).map((v) => ({
+            name: v.name,
+            lang: v.lang,
+            voiceURI: v.voiceURI,
+            localService: v.localService,
+            default: v.default,
+        }));
+        console.groupCollapsed("[EdgeTranslate] Available voices");
+        console.table(rows);
+        const siri = rows.filter(
+            (r) =>
+                String(r.name || "").toLowerCase().includes("siri") ||
+                String(r.voiceURI || "").toLowerCase().includes("siri")
+        );
+        if (siri.length) {
+            console.info("[EdgeTranslate] Siri-like voices detected:");
+            console.table(siri);
+        } else {
+            console.info("[EdgeTranslate] No Siri voice exposed via Web Speech API");
+        }
+        console.groupEnd();
+    } catch {}
 }
 
 function scoreVoiceFor(langBCP47, voice) {
@@ -133,7 +171,11 @@ async function pickBestVoice(lang) {
             const n = (v.name || "").toLowerCase();
             const u = (v.voiceURI || "").toLowerCase();
             const vLang = (v.lang || "").toLowerCase();
-            return (n.includes("siri") || u.includes("siri")) && v.localService !== false && vLang.startsWith(langCode);
+            return (
+                (n.includes("siri") || u.includes("siri")) &&
+                v.localService !== false &&
+                vLang.startsWith(langCode)
+            );
         });
         if (siriLang) {
             lastVoiceByLang.set(cacheKey, siriLang);
