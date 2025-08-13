@@ -32,42 +32,7 @@ let documentBodyCSS = "";
 // The duration time of result panel's transition. unit: ms.
 const transitionDuration = 500;
 
-// Cache voices and selection to avoid re-computation
-let cachedVoices = null;
-let voicesLoaded = false;
-let lastVoiceByLang = new Map();
-
-async function loadVoices() {
-    if (typeof speechSynthesis === "undefined") return [];
-    const existing = speechSynthesis.getVoices();
-    if (existing && existing.length) {
-        voicesLoaded = true;
-        cachedVoices = existing;
-        return existing;
-    }
-    return new Promise((resolve) => {
-        const onVoices = () => {
-            const list = speechSynthesis.getVoices() || [];
-            cachedVoices = list;
-            voicesLoaded = true;
-            speechSynthesis.removeEventListener?.("voiceschanged", onVoices);
-            resolve(list);
-        };
-        speechSynthesis.addEventListener?.("voiceschanged", onVoices);
-        // Fallback timeout in case event never fires
-        setTimeout(() => {
-            const list = speechSynthesis.getVoices() || [];
-            if (!voicesLoaded && list.length) {
-                cachedVoices = list;
-                voicesLoaded = true;
-                speechSynthesis.removeEventListener?.("voiceschanged", onVoices);
-                resolve(list);
-            } else if (!voicesLoaded) {
-                resolve(list);
-            }
-        }, 1000);
-    });
-}
+// No voice caching/selection. Use browser defaults to avoid bias.
 
 function normalizeBCP47(lang) {
     if (!lang) return "";
@@ -81,80 +46,6 @@ function normalizeBCP47(lang) {
 }
 
 // All browsers use the same Web Speech logic now; no UA-specific branches
-
-function scoreVoiceFor(langBCP47, voice) {
-    let score = 0;
-    if (!voice) return -1;
-    if (voice.lang && voice.lang.toLowerCase().startsWith(langBCP47.toLowerCase().split("-")[0]))
-        score += 5;
-    if (voice.lang && voice.lang.toLowerCase() === langBCP47.toLowerCase()) score += 10;
-    const name = (voice.name || "").toLowerCase();
-    const voiceUri = (voice.voiceURI || "").toLowerCase();
-    // Prefer local voices to avoid online/streamed voices when possible
-    if (voice.localService) score += 4;
-    // Penalize novelty/robotic voices
-    const novelty = [
-        "bad news",
-        "bahh",
-        "bells",
-        "boing",
-        "bubbles",
-        "cellos",
-        "deranged",
-        "good news",
-        "jester",
-        "junior",
-        "organ",
-        "princess",
-        "superstar",
-        "ralph",
-        "trinoids",
-        "whisper",
-        "zarvox",
-    ];
-    if (novelty.some((k) => name.includes(k))) score -= 12;
-    // Penalize Eloquence series for more natural output
-    const eloquence = [
-        "eloquence",
-        "eddy",
-        "flo",
-        "grandma",
-        "grandpa",
-        "reed",
-        "rocko",
-        "sandy",
-        "shelley",
-    ];
-    if (eloquence.some((k) => name.includes(k) || voiceUri.includes(k))) score -= 8;
-    // Keep engine hints mild to avoid large cross-browser differences
-    if (name.includes("neural") || name.includes("natural")) score += 2;
-    if (voice.default) score += 2;
-    return score;
-}
-
-async function pickBestVoice(lang) {
-    const normalized = normalizeBCP47(lang || "");
-    const cacheKey = normalized || "default";
-    if (lastVoiceByLang.has(cacheKey)) {
-        return {
-            lang: normalized,
-            voice: lastVoiceByLang.get(cacheKey),
-        };
-    }
-    const list = cachedVoices || (await loadVoices());
-    if (!list || !list.length) return { lang: normalized, voice: null };
-    let best = null;
-    let bestScore = -1;
-    for (const v of list) {
-        const s = scoreVoiceFor(normalized || v.lang || "", v);
-        if (s > bestScore) {
-            best = v;
-            bestScore = s;
-        }
-    }
-    lastVoiceByLang.set(cacheKey, best);
-    return { lang: normalized, voice: best };
-}
 
 export default function ResultPanel() {
     // Whether the result is open.
@@ -221,13 +112,9 @@ export default function ResultPanel() {
                     // 언어 정규화 및 최적 음성 선택
                     (async () => {
                         try {
-                            const { lang: normLang, voice } = await pickBestVoice(language);
+                            const normLang = normalizeBCP47(language);
                             if (normLang) utter.lang = normLang;
-                            if (voice) utter.voice = voice;
-                            // 한국어는 너무 빠르게 들리는 경향 보정
-                            // 언어/브라우저별 속도 튜닝 제거: 일관된 기본 속도 사용
                             utter.rate = speed === "fast" ? 1.0 : 0.8;
-                            // 약간의 톤 보정
                             utter.pitch = 1.0;
                         } catch {}
                         speechSynthesis.speak(utter);
