@@ -129,11 +129,6 @@ function scoreVoiceFor(langBCP47, voice) {
     // Keep engine hints mild to avoid large cross-browser differences
     if (name.includes("neural") || name.includes("natural")) score += 2;
     if (voice.default) score += 2;
-    // Korean-specific preferred voice names (Siri boost handled above)
-    if (langBCP47.startsWith("ko")) {
-        if (name.includes("korean") || name.includes("한국")) score += 3;
-        if (name.includes("yuri") || name.includes("nara")) score += 2; // keep neutral
-    }
     return score;
 }
 
