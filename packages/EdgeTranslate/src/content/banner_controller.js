@@ -30,8 +30,10 @@ class BannerController {
                         // Google page translator runs in website context, so we use window.postMessage
                         // for message passing.
                         this.currentTranslator = "google";
+                        // Ensure we don't attach multiple handlers
+                        if (this.canceller) this.canceller();
                         let handler = this.googleMessageHandler.bind(this);
-                        window.addEventListener("message", handler);
+                        window.addEventListener("message", handler, { once: false });
                         this.canceller = (() => {
                             window.removeEventListener("message", handler);
                         }).bind(this);
@@ -85,16 +87,16 @@ class BannerController {
      */
     movePage(property, distance, absolute) {
         let orig = document.body.style.getPropertyValue(property);
+        const current = parseInt(orig || "0", 10) || 0;
+        const target = absolute ? distance : current + distance;
+        if (current === target) return;
         try {
-            // The property has value originally.
-            let orig_value = parseInt(orig, 10);
             document.body.style.cssText = document.body.style.cssText.replace(
                 new RegExp(`${property}:.*;`, "g"),
-                `${property}: ${absolute ? distance : orig_value + distance}px !important;`
+                `${property}: ${target}px !important;`
             );
         } catch {
-            // The property has no valid value originally, move absolutely.
-            document.body.style.setProperty(property, `${distance}px`, "important");
+            document.body.style.setProperty(property, `${target}px`, "important");
         }
     }
 
@@ -117,12 +119,9 @@ class BannerController {
                 getOrSetDefaultSettings("HidePageTranslatorBanner", DEFAULT_SETTINGS).then(
                     (result) => {
                         if (result.HidePageTranslatorBanner) {
-                            setTimeout(() => {
-                                this.toggleBannerFrame(false);
-                                // If user decide to hide the banner, we just keep the top
-                                // of the page at 0px.
-                                this.movePage("top", 0, true);
-                            }, 0);
+                            this.toggleBannerFrame(false);
+                            // Keep top at 0px.
+                            this.movePage("top", 0, true);
                         }
                     }
                 );

@@ -727,43 +727,39 @@ function executeGoogleScript(channel) {
             if (isSafari) {
                 // Run init.js in ISOLATED world (default) so chrome.* is available; it will inject a page script (injection.js)
                 if (chrome.scripting && chrome.scripting.executeScript) {
+                    const tabId = tabs[0].id;
                     chrome.scripting
                         .executeScript({
-                            target: { tabId: tabs[0].id, allFrames: false },
+                            target: { tabId, allFrames: false },
                             files: ["google/init.js"],
                             injectImmediately: true,
                         })
                         .then(() => {
-                            channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                            channel.emitToTabs(tabId, "start_page_translate", {
                                 translator: "google",
                             });
-                            // 보조 경로: 배너 실패 대비 DOM 폴백도 병행 트리거
                             setTimeout(() => {
-                                channel.emitToTabs(tabs[0].id, "start_dom_page_translate", {});
+                                try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
                             }, 800);
                         })
                         .catch(() => {
                             try {
                                 chrome.tabs.executeScript(
-                                    tabs[0].id,
+                                    tabId,
                                     { file: "google/init.js" },
                                     () => {
-                                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                                        channel.emitToTabs(tabId, "start_page_translate", {
                                             translator: "google",
                                         });
                                         setTimeout(() => {
-                                            channel.emitToTabs(
-                                                tabs[0].id,
-                                                "start_dom_page_translate",
-                                                {}
-                                            );
+                                            try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
                                         }, 800);
                                     }
                                 );
                             } catch (error) {
-                                channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
+                                channel.emitToTabs(tabId, "inject_page_translate", {});
                                 setTimeout(() => {
-                                    channel.emitToTabs(tabs[0].id, "start_dom_page_translate", {});
+                                    try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
                                 }, 800);
                             }
                         });
@@ -773,32 +769,37 @@ function executeGoogleScript(channel) {
             const hasScripting =
                 typeof chrome !== "undefined" && chrome.scripting && chrome.scripting.executeScript;
             if (hasScripting) {
+                const tabId = tabs[0].id;
                 chrome.scripting
                     .executeScript({
-                        target: { tabId: tabs[0].id },
+                        target: { tabId },
                         files: ["google/init.js"],
                     })
                     .then(() => {
-                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                        channel.emitToTabs(tabId, "start_page_translate", {
                             translator: "google",
                         });
+                        setTimeout(() => {
+                            try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
+                        }, 800);
                     })
                     .catch((error) => {
                         logWarn(`Chrome scripting error: ${error}`);
                         // final fallback: ask content script to inject
-                        channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
+                        channel.emitToTabs(tabId, "inject_page_translate", {});
                     });
             } else {
                 // MV2-compatible executeScript via tabs
                 try {
-                    chrome.tabs.executeScript(tabs[0].id, { file: "google/init.js" }, () => {
-                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                    const tabId = tabs[0].id;
+                    chrome.tabs.executeScript(tabId, { file: "google/init.js" }, () => {
+                        channel.emitToTabs(tabId, "start_page_translate", {
                             translator: "google",
                         });
                     });
                 } catch (error) {
                     // delegate to content script
-                    channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
+                    channel.emitToTabs(tabId, "inject_page_translate", {});
                 }
             }
         }
