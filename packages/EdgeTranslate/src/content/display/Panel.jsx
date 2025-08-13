@@ -265,7 +265,6 @@ export default function ResultPanel() {
                         // 다른 모든 경우는 완료로 처리 (보통 정상 완료 상황)
                         finishTTS("completed");
                     };
-
                 });
             }
 
