@@ -9,8 +9,8 @@
 
 Edge Translate의 포크 프로젝트로, Manifest V3에 맞춰 전면 리팩터링하고 최신 브라우저 정책에 맞춘 안정성과 성능을 제공합니다. 원작이 MV2 중단 정책으로 스토어에서 내려간 이후 동일한 사용 경험을 이어가도록 코드와 빌드 시스템을 현대화했습니다.
 
-- 원작 저장소: https://github.com/EdgeTranslate/EdgeTranslate
-- 현재 저장소: https://github.com/Meapri/EdgeTranslate-v3
+- 원작 저장소: [EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)
+- 현재 저장소: [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3)
 
 ### 주요 기능
 - 선택 번역과 사이드 팝업: 선택한 텍스트의 번역 결과를 화면 측면 팝업으로 표시해 읽기 흐름을 방해하지 않습니다. 결과 항목(일반 의미, 발음, 정의/상세 설명, 예문 등)은 사용자 설정으로 제어할 수 있으며, 자주 사용할 경우 고정할 수 있습니다.
@@ -89,8 +89,8 @@ App Store 계정 등 환경 변수 설정이 필요합니다.
 
 ### 문서
 - 원작 문서(기능 전반 참고):
-  - Instructions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md
-  - Precautions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md
+  - Instructions: [Edge Translate Instructions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md)
+  - Precautions: [Edge Translate Precautions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md)
 
 ### 라이선스
 - 본 포크는 원작과 동일한 MIT AND NPL 라이선스를 따릅니다.

@@ -9,8 +9,8 @@
 
 本專案是 Edge Translate 的分支，已依照 Manifest V3 全面重構，並符合現行瀏覽器政策與建置流程。原始 MV2 版本因政策下架後，本專案現代化了程式碼與建置，以延續相同的使用體驗並提升穩定性。
 
-- 原始倉庫：https://github.com/EdgeTranslate/EdgeTranslate
-- 目前倉庫：https://github.com/Meapri/EdgeTranslate-v3
+- 原始倉庫：[EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)
+- 目前倉庫：[Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3)
 
 ### 主要功能
 - 選取翻譯與側邊彈窗：結果以側邊面板呈現，不中斷閱讀流程。可自訂顯示項（常用釋義、發音、定義/詳解、例句等），並可釘選面板。
@@ -89,8 +89,8 @@ npm run safari:release
 
 ### 文件
 - 原始專案文件（功能總覽參考）：
-  - Instructions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md
-  - Precautions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md
+  - Instructions: [Edge Translate Instructions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md)
+  - Precautions: [Edge Translate Precautions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md)
 
 ### 授權
 - 與原始專案相同：MIT 與 NPL

@@ -9,8 +9,8 @@
 
 本プロジェクトは Edge Translate のフォークで、Manifest V3 に合わせて全面的にリファクタリングし、最新のブラウザー方針とビルド体制に適合させています。元の MV2 版がストアから削除された後も、同様のユーザー体験を維持しつつ安定性を高めるために近代化しました。
 
-- 元リポジトリ: https://github.com/EdgeTranslate/EdgeTranslate
-- 現在のリポジトリ: https://github.com/Meapri/EdgeTranslate-v3
+- 元リポジトリ: [EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)
+- 現在のリポジトリ: [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3)
 
 ### 主な機能
 - 選択翻訳とサイドポップアップ: 選択したテキストの結果をサイドパネルに表示し、読書の流れを妨げません。表示項目（一般的な意味、発音、定義/詳細説明、例文 など）をカスタマイズでき、パネルのピン留めも可能です。
@@ -89,8 +89,8 @@ npm run safari:release
 
 ### ドキュメント
 - 元プロジェクトのドキュメント（全体機能の参考）:
-  - Instructions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md
-  - Precautions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md
+  - Instructions: [Edge Translate Instructions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md)
+  - Precautions: [Edge Translate Precautions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md)
 
 ### ライセンス
 - 元プロジェクトと同じ: MIT および NPL

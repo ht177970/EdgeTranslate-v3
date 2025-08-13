@@ -2,8 +2,8 @@
 
 A fork of Edge Translate refactored for Manifest V3, modern build tooling, and current browser policies. After the original MV2-based version was removed from stores, this project modernizes the code and build to preserve the same user experience with improved stability.
 
-- Original repo: https://github.com/EdgeTranslate/EdgeTranslate
-- Current repo: https://github.com/Meapri/EdgeTranslate-v3
+- Original repo: [EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)
+- Current repo: [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3)
 
 View this page in other languages:
 - [简体中文](./docs/README_CN.md)
@@ -88,8 +88,8 @@ Global host permissions are required for always-on content scripts (selection tr
 
 ### Documentation
 - Original project docs (general feature reference):
-  - Instructions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md
-  - Precautions: https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md
+  - Instructions: [Edge Translate Instructions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Instructions.md)
+  - Precautions: [Edge Translate Precautions](https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/Precautions.md)
 
 ### License
 - MIT AND NPL, same as the original project
