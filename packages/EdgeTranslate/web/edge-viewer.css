@@ -35,6 +35,7 @@
 html, body {
   background: var(--et-bg) !important;
   color: var(--et-text) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans", sans-serif !important;
 }
 
 /* Page inversion (PDF content only, toolbar 제외) */
