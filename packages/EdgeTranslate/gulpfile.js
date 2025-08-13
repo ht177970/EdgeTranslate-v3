@@ -1,4 +1,5 @@
 const _ = require("lodash");
+const path = require("path");
 const del = require("del");
 const gulp = require("gulp");
 const stylus = require("gulp-stylus");
@@ -344,6 +345,72 @@ function packStatic() {
 /**
  * End private tasks' definition
  */
+
+/**
+ * Safari 전용: build 결과를 Xcode 프로젝트 리소스로 동기화 및 자동 리빌드
+ */
+function safariRsync(done) {
+    if (browser !== "safari") return done();
+    const args = [
+        "-av",
+        "--delete",
+        "./build/safari/",
+        "./safari-xcode/EdgeTranslate/EdgeTranslate Extension/Resources/",
+    ];
+    const proc = spawn("rsync", args, { stdio: "inherit" });
+    proc.on("close", () => {
+        try {
+            const resourcesDir = path.resolve(
+                __dirname,
+                "./safari-xcode/EdgeTranslate/EdgeTranslate Extension/Resources"
+            );
+            const googleDir = path.join(resourcesDir, "google");
+            const vendor209 = path.join(resourcesDir, "209.js");
+            if (!fs.existsSync(googleDir)) fs.mkdirSync(googleDir, { recursive: true });
+            if (!fs.existsSync(vendor209)) fs.writeFileSync(vendor209, "");
+        } catch (e) {}
+        done();
+    });
+}
+
+function safariXcodeBuild(done) {
+    if (browser !== "safari") return done();
+    const projectPath =
+        "./safari-xcode/EdgeTranslate/EdgeTranslate.xcodeproj";
+    const args = [
+        "-project",
+        projectPath,
+        "-scheme",
+        "EdgeTranslate",
+        "-configuration",
+        "Debug",
+        "CODE_SIGNING_ALLOWED=NO",
+        "build",
+    ];
+    const proc = spawn("xcodebuild", args, { stdio: "inherit" });
+    proc.on("close", () => done());
+}
+
+function safariWatchAndRebuild(done) {
+    if (browser !== "safari") return done();
+    let timer = null;
+    const kick = () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+            gulp.series(safariRsync, safariXcodeBuild)((err) => err && console.error(err));
+        }, 200);
+    };
+    gulp.watch("./build/safari/**", { ignoreInitial: false }).on("all", kick);
+    done();
+}
+
+exports.safariRsync = safariRsync;
+exports.devSafariXcode = gulp.series(
+    setDevelopEnvironment,
+    clean,
+    gulp.parallel(eslintJS, buildJSDev, manifest, html, styl, packStatic),
+    gulp.parallel(watcher, safariWatchAndRebuild)
+);
 
 /**
  * 一个简易gulp插件，接收一组json文件作为参数，将它们合并到gulp.src引用的基本json文件；
