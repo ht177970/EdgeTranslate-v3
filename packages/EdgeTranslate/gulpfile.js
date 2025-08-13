@@ -358,21 +358,7 @@ function safariRsync(done) {
         "./safari-xcode/EdgeTranslate/EdgeTranslate Extension/Resources/",
     ];
     const proc = spawn("rsync", args, { stdio: "inherit" });
-    proc.on("close", () => {
-        try {
-            const resourcesDir = path.resolve(
-                __dirname,
-                "./safari-xcode/EdgeTranslate/EdgeTranslate Extension/Resources"
-            );
-            const googleDir = path.join(resourcesDir, "google");
-            const vendor209 = path.join(resourcesDir, "209.js");
-            if (!fs.existsSync(googleDir)) fs.mkdirSync(googleDir, { recursive: true });
-            const keep = path.join(googleDir, ".keep");
-            if (!fs.existsSync(keep)) fs.writeFileSync(keep, "stub");
-            if (!fs.existsSync(vendor209)) fs.writeFileSync(vendor209, "");
-        } catch (e) {}
-        done();
-    });
+    proc.on("close", () => done());
 }
 
 function safariXcodeCleanResources(done) {
