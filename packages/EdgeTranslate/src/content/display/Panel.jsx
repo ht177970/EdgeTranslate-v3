@@ -106,8 +106,12 @@ function scoreVoiceFor(langBCP47, voice) {
 
     // Quality tier hints (Safari/macOS): prefer enhanced/premium, avoid compact
     const looksEnhanced =
-        name.includes("enhanced") || name.includes("premium") || name.includes("pro") ||
-        name.includes("siri") || uri.includes("-premium") || uri.includes("-enhanced");
+        name.includes("enhanced") ||
+        name.includes("premium") ||
+        name.includes("pro") ||
+        name.includes("siri") ||
+        uri.includes("-premium") ||
+        uri.includes("-enhanced");
     const looksCompact = uri.includes("-compact") || name.includes("compact");
     if (looksEnhanced) score += isSafari ? 10 : 6;
     if (looksCompact) score -= isSafari ? 8 : 4;
@@ -144,7 +148,11 @@ async function pickBestVoice(lang) {
 
     // 1) 1차 필터: 언어 코드 베이스가 일치하는 보이스 우선 (예: ko-*, en-*)
     const base = (normalized || "").split("-")[0].toLowerCase();
-    const primary = list.filter((v) => String(v.lang || "").toLowerCase().startsWith(base));
+    const primary = list.filter((v) =>
+        String(v.lang || "")
+            .toLowerCase()
+            .startsWith(base)
+    );
     const candidates = primary.length ? primary : list;
 
     // 2) 스코어 기반 정렬 (사파리에서는 enhanced/premium 우선)
