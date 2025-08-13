@@ -42,24 +42,40 @@ try {
   const DEBUG = false;
   // Apply persisted theme early to avoid FOUC
   try {
-    // Determine desired mode from our own preference or system
-    let saved = localStorage.getItem('et_viewer_theme');
-    if (saved !== 'dark' && saved !== 'light') {
-      saved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      localStorage.setItem('et_viewer_theme', saved);
-    }
+    // Determine desired mode from stored preference or follow system/browser theme
+    let explicit = localStorage.getItem('et_viewer_theme'); // 'dark' | 'light' | null (system)
+    const mql = matchMedia('(prefers-color-scheme: dark)');
+    const computeSystem = () => (mql.matches ? 'dark' : 'light');
+    let currentMode = (explicit === 'dark' || explicit === 'light') ? explicit : computeSystem();
 
     // Persist into PDF.js preferences so built-in theme is used
     const prefsRaw = localStorage.getItem('pdfjs.preferences');
     let prefsObj = {};
     try { prefsObj = prefsRaw ? JSON.parse(prefsRaw) : {}; } catch {}
-    prefsObj.viewerCssTheme = saved === 'dark' ? 2 : 1; // 1: light, 2: dark
+    prefsObj.viewerCssTheme = currentMode === 'dark' ? 2 : 1; // 1: light, 2: dark
     localStorage.setItem('pdfjs.preferences', JSON.stringify(prefsObj));
 
     // Apply immediately so UI paints correctly before viewer init
-    document.documentElement.style.colorScheme = saved;
-    document.documentElement.setAttribute('data-theme', saved);
-    // Do not set meta theme-color; desktop Chrome follows system/browser settings
+    document.documentElement.style.colorScheme = currentMode;
+    document.documentElement.setAttribute('data-theme', currentMode);
+
+    // If user hasn't explicitly chosen, follow system changes dynamically
+    if (!(explicit === 'dark' || explicit === 'light')) {
+      try {
+        const onSchemeChange = () => {
+          const mode = computeSystem();
+          document.documentElement.style.colorScheme = mode;
+          document.documentElement.setAttribute('data-theme', mode);
+          const raw = localStorage.getItem('pdfjs.preferences');
+          let obj = {};
+          try { obj = raw ? JSON.parse(raw) : {}; } catch {}
+          obj.viewerCssTheme = mode === 'dark' ? 2 : 1;
+          localStorage.setItem('pdfjs.preferences', JSON.stringify(obj));
+        };
+        if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onSchemeChange);
+        else if (typeof mql.addListener === 'function') mql.addListener(onSchemeChange);
+      } catch {}
+    }
   } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
@@ -143,10 +159,14 @@ try {
     if (current !== 'dark' && current !== 'light') {
       current = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    applyTheme(current);
+    // Do not persist here; initial mode may be system-driven
+    btn.setAttribute('aria-pressed', String(current === 'dark'));
+    btn.classList.toggle('toggled', current === 'dark');
 
     btn.addEventListener('click', () => {
-      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      const now = document.documentElement.getAttribute('data-theme');
+      const next = now === 'dark' ? 'light' : 'dark';
+      // User action: set explicit preference and persist
       applyTheme(next);
     });
     return true;
