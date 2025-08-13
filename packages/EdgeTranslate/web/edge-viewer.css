@@ -197,6 +197,14 @@ html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
   gap: 6px;
 }
 
+/* Theme dropdown menu tweaks */
+#etTheme .menuContainer button.toolbarButton.labeled.toggled {
+  background: var(--menuitem-hover-bg-color) !important;
+}
+#etThemeMenu.menu {
+  min-width: 160px;
+}
+
 /* PDF.js menus and doorhangers (공통 톤) */
 html[data-theme] .doorHanger,
 html[data-theme] .doorHangerRight,

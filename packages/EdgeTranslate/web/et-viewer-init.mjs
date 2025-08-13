@@ -132,19 +132,29 @@ try {
   };
   ensureViewerLoaded();
 
-  // Setup theme toggle (robust to readyState)
+  // Setup theme dropdown with Auto/Light/Dark
   const setupThemeToggle = () => {
     const btn = document.getElementById('etThemeToggle');
-    if (!btn) return false;
+    const menu = document.getElementById('etThemeMenu');
+    const btnAuto = document.getElementById('etThemeAuto');
+    const btnLight = document.getElementById('etThemeLight');
+    const btnDark = document.getElementById('etThemeDark');
+    if (!btn || !menu || !btnAuto || !btnLight || !btnDark) return false;
+
+    const setExplicit = (mode) => {
+      try {
+        if (mode === null) {
+          localStorage.removeItem('et_viewer_theme');
+        } else {
+          localStorage.setItem('et_viewer_theme', mode);
+        }
+      } catch {}
+    };
 
     const applyTheme = (mode) => {
-      // Update document styles
       document.documentElement.style.colorScheme = mode;
       document.documentElement.setAttribute('data-theme', mode);
-      // No meta theme-color updates on desktop
-      // Persist in both our storage and PDF.js preferences
       try {
-        localStorage.setItem('et_viewer_theme', mode);
         const prefsRaw = localStorage.getItem('pdfjs.preferences');
         let prefsObj = {};
         try { prefsObj = prefsRaw ? JSON.parse(prefsRaw) : {}; } catch {}
@@ -155,19 +165,79 @@ try {
       btn.classList.toggle('toggled', mode === 'dark');
     };
 
-    let current = document.documentElement.getAttribute('data-theme');
-    if (current !== 'dark' && current !== 'light') {
-      current = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    // Do not persist here; initial mode may be system-driven
-    btn.setAttribute('aria-pressed', String(current === 'dark'));
-    btn.classList.toggle('toggled', current === 'dark');
+    const mql = matchMedia('(prefers-color-scheme: dark)');
+    const computeSystem = () => (mql.matches ? 'dark' : 'light');
+    const syncFromStorageOrSystem = () => {
+      let explicit = null;
+      try { explicit = localStorage.getItem('et_viewer_theme'); } catch {}
+      if (explicit === 'dark' || explicit === 'light') {
+        applyTheme(explicit);
+        markActive(explicit);
+      } else {
+        const sys = computeSystem();
+        applyTheme(sys);
+        markActive('auto');
+      }
+    };
 
-    btn.addEventListener('click', () => {
-      const now = document.documentElement.getAttribute('data-theme');
-      const next = now === 'dark' ? 'light' : 'dark';
-      // User action: set explicit preference and persist
-      applyTheme(next);
+    const openMenu = () => {
+      menu.classList.remove('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+    };
+    const closeMenu = () => {
+      menu.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    };
+    const toggleMenu = () => {
+      if (menu.classList.contains('hidden')) openMenu(); else closeMenu();
+    };
+
+    const markActive = (mode) => {
+      // Clear states
+      for (const el of [btnAuto, btnLight, btnDark]) el.classList.remove('toggled');
+      if (mode === 'auto') btnAuto.classList.add('toggled');
+      if (mode === 'light') btnLight.classList.add('toggled');
+      if (mode === 'dark') btnDark.classList.add('toggled');
+    };
+
+    // Initial state
+    syncFromStorageOrSystem();
+
+    btn.addEventListener('click', toggleMenu);
+    btnAuto.addEventListener('click', () => {
+      setExplicit(null); // follow system
+      syncFromStorageOrSystem();
+      closeMenu();
+    });
+    btnLight.addEventListener('click', () => {
+      setExplicit('light');
+      syncFromStorageOrSystem();
+      closeMenu();
+    });
+    btnDark.addEventListener('click', () => {
+      setExplicit('dark');
+      syncFromStorageOrSystem();
+      closeMenu();
+    });
+
+    // System changes apply only when in Auto
+    const onSchemeChange = () => {
+      let explicit = null;
+      try { explicit = localStorage.getItem('et_viewer_theme'); } catch {}
+      if (explicit !== 'dark' && explicit !== 'light') {
+        syncFromStorageOrSystem();
+      }
+    };
+    try {
+      if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onSchemeChange);
+      else if (typeof mql.addListener === 'function') mql.addListener(onSchemeChange);
+    } catch {}
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      const root = document.getElementById('etTheme');
+      if (!root) return;
+      if (!root.contains(e.target)) closeMenu();
     });
     return true;
   };
