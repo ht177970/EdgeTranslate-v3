@@ -881,8 +881,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
             }
         }
 
-        // 卸载原因调查
-        chrome.runtime.setUninstallURL("https://wj.qq.com/s2/3265930/8f07/");
+        // Do not open any page on uninstall
     }
 });
 
