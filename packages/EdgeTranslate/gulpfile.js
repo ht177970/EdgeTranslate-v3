@@ -373,6 +373,46 @@ function safariRsync(done) {
     });
 }
 
+function safariXcodeCleanResources(done) {
+    if (browser !== "safari") return done();
+    try {
+        const pbxPath = path.resolve(
+            __dirname,
+            "./safari-xcode/EdgeTranslate/EdgeTranslate.xcodeproj/project.pbxproj"
+        );
+        if (!fs.existsSync(pbxPath)) return done();
+        const original = fs.readFileSync(pbxPath, "utf8");
+        let content = original;
+
+        // Remove build file entries for 209.js and google resources
+        content = content.replace(/\n\s*[^\n]*\/\* [^*]*209\\.js[^*]* \*\/ = \{[^}]*\};\n/g, "\n");
+        content = content.replace(/\n\s*[^\n]*\/\* [^*]*google[^*]* \*\/ = \{[^}]*\};\n/g, "\n");
+
+        // Remove file references for 209.js and Resources/google
+        content = content.replace(/\n\s*[^\n]*\/\* 209\\.js \*\/ = \{[^}]*\};\n/g, "\n");
+        content = content.replace(
+            /\n\s*[^\n]*\/\* google \*\/ = \{[^}]*path = [^;]*google[^;]*;[^}]*\};\n/g,
+            "\n"
+        );
+
+        // Remove list entries inside Resources build phase
+        content = content.replace(/\s*[^\n]*\/\* [^*]*209\\.js in Resources \*\/,?\n/g, "");
+        content = content.replace(/\s*[^\n]*\/\* [^*]*google[^*]* in Resources \*\/,?\n/g, "");
+
+        if (content !== original) {
+            const backup = pbxPath + ".bak";
+            try {
+                if (!fs.existsSync(backup)) fs.writeFileSync(backup, original);
+            } catch {}
+            fs.writeFileSync(pbxPath, content);
+            log("Patched Xcode project: removed google/209.js resources from build");
+        }
+    } catch (e) {
+        log(e);
+    }
+    done();
+}
+
 function safariXcodeBuild(done) {
     if (browser !== "safari") return done();
     const projectPath =
@@ -397,7 +437,9 @@ function safariWatchAndRebuild(done) {
     const kick = () => {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
-            gulp.series(safariRsync, safariXcodeBuild)((err) => err && console.error(err));
+            gulp.series(safariRsync, safariXcodeCleanResources, safariXcodeBuild)((err) =>
+                err && console.error(err)
+            );
         }, 200);
     };
     gulp.watch("./build/safari/**", { ignoreInitial: false }).on("all", kick);
