@@ -72,7 +72,7 @@
     "TranslatePage": { "message": "이 페이지 번역", "description": "기본 번역기로 페이지 번역" },
     "CancelPageTranslate": { "message": "페이지 번역 취소", "description": "페이지 번역 취소" },
     "TogglePageTranslateBanner": { "message": "페이지 번역 배너 토글", "description": "배너 표시/숨김" },
-    "TranslatePageGoogle": { "message": "Google로 이 페이지 번역", "description": "구글 페이지 번역" },
+    "TranslatePageGoogle": { "message": "구글로 이 페이지 번역", "description": "구글 페이지 번역" },
 
     "PrivacyPolicy": { "message": "개인정보 처리방침", "description": "개인정보 처리방침" },
     "Settings": { "message": "설정", "description": "설정" },
@@ -93,8 +93,8 @@
     "DefinitionTranslator": { "message": "정의 공급자", "description": "정의 공급자" },
     "ExampleTranslator": { "message": "예문 공급자", "description": "예문 공급자" },
 
-    "BingTranslate": { "message": "빙 번역", "description": "Bing 번역" },
-    "BingTranslateShort": { "message": "빙", "description": "빙" },
+    "BingTranslate": { "message": "Bing 번역", "description": "Bing 번역" },
+    "BingTranslateShort": { "message": "Bing", "description": "Bing" },
     "DeepLTranslate": { "message": "DeepL 번역", "description": "DeepL 번역" },
     "DeepLTranslateShort": { "message": "DeepL", "description": "DeepL" },
     "GoogleTranslate": { "message": "구글 번역", "description": "Google 번역" },
