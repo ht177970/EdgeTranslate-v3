@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS, getOrSetDefaultSettings } from "common/scripts/settin
  * Communication channel.
  */
 const channel = new Channel();
+const IS_CHROME = BROWSER_ENV === "chrome";
 
 // 获取下拉列表元素
 let sourceLanguage = document.getElementById("sl");
@@ -21,6 +22,11 @@ let mutualTranslate = document.getElementById("mutual-translate");
  */
 window.onload = function () {
     i18nHTML();
+    // Chrome가 아닌 브라우저에서는 전체 페이지 번역 UI 숨김
+    if (!IS_CHROME) {
+        const pageTranslateRow = document.getElementById("page-translate");
+        if (pageTranslateRow) pageTranslateRow.style.display = "none";
+    }
 
     let arrowUp = document.getElementById("arrow-up");
     let arrowDown = document.getElementById("arrow-down");
@@ -167,9 +173,11 @@ function addEventListener() {
     document.getElementById("translateSubmit").addEventListener("click", translateSubmit);
     document.addEventListener("keypress", translatePreSubmit); // 对用户按下回车按键后的事件进行监听
     document.getElementById("setting-switch").addEventListener("click", settingSwitch);
-    document.getElementById("google-page-translate").addEventListener("click", () => {
-        channel.emit("translate_page_google", {});
-    });
+    if (IS_CHROME) {
+        document.getElementById("google-page-translate").addEventListener("click", () => {
+            channel.emit("translate_page_google", {});
+        });
+    }
 }
 
 /**

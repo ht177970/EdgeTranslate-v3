@@ -154,6 +154,27 @@ class TranslatorManager {
         // Translate service.
         this.channel.provide("translate", (params) => this.translate(params.text, params.position));
 
+        // Quiet single-text translate service for DOM page translation (no UI events)
+        this.channel.provide("translate_text_quiet", async (params) => {
+            await this.config_loader;
+            const text = params && params.text ? params.text : "";
+            if (!text) return Promise.resolve({ originalText: "", translatedText: "" });
+            let sl = (params && params.sl) || this.LANGUAGE_SETTING.sl || "auto";
+            let tl = (params && params.tl) || this.LANGUAGE_SETTING.tl;
+            try {
+                const translatorId = this.DEFAULT_TRANSLATOR;
+                // cache first
+                let result = this.getTranslationFromCache(text, sl, tl, translatorId);
+                if (!result) {
+                    result = await this.TRANSLATORS[translatorId].translate(text, sl, tl);
+                    if (result) this.rememberTranslation(text, sl, tl, translatorId, result);
+                }
+                return Promise.resolve(result || { originalText: text, translatedText: text });
+            } catch (e) {
+                return Promise.resolve({ originalText: text, translatedText: text });
+            }
+        });
+
         // Pronounce service.
         this.channel.provide("pronounce", (params) => {
             let speed = params.speed;
@@ -200,6 +221,8 @@ class TranslatorManager {
     listenToEvents() {
         // Google page translate button clicked event.
         this.channel.on("translate_page_google", () => {
+            // Safari/Firefox에서는 전체 페이지 번역 비활성화
+            if (typeof BROWSER_ENV !== "undefined" && BROWSER_ENV !== "chrome") return;
             executeGoogleScript(this.channel);
         });
 
@@ -590,17 +613,32 @@ class TranslatorManager {
  * @param {import("../../common/scripts/channel.js").default} channel Communication channel.
  */
 function translatePage(channel) {
-    getOrSetDefaultSettings(["DefaultPageTranslator"], DEFAULT_SETTINGS).then((result) => {
-        let translator = result.DefaultPageTranslator;
-        switch (translator) {
-            case "GooglePageTranslate":
-                executeGoogleScript(channel);
-                break;
-            default:
-                executeGoogleScript(channel);
-                break;
+    getOrSetDefaultSettings(["DefaultPageTranslator", "languageSetting"], DEFAULT_SETTINGS).then(
+        (result) => {
+            const translator = result.DefaultPageTranslator;
+            // const targetLang = (result.languageSetting && result.languageSetting.tl) || "en";
+
+            // Safari/Firefox에서는 전체 페이지 번역을 제공하지 않음
+            if (typeof BROWSER_ENV !== "undefined" && BROWSER_ENV !== "chrome") return;
+
+            switch (translator) {
+                case "GooglePageTranslate":
+                    executeGoogleScript(channel);
+                    break;
+                case "DomPageTranslate":
+                    // Safari 외 브라우저에서만 사용
+                    promiseTabs.query({ active: true, currentWindow: true }).then((tabs) => {
+                        if (tabs && tabs[0]) {
+                            channel.emitToTabs(tabs[0].id, "start_dom_page_translate", {});
+                        }
+                    });
+                    break;
+                default:
+                    executeGoogleScript(channel);
+                    break;
+            }
         }
-    });
+    );
 }
 
 /**
@@ -611,21 +649,117 @@ function translatePage(channel) {
 function executeGoogleScript(channel) {
     promiseTabs.query({ active: true, currentWindow: true }).then((tabs) => {
         if (tabs[0]) {
-            chrome.scripting
-                .executeScript({
-                    target: { tabId: tabs[0].id },
-                    files: ["/google/init.js"],
-                })
-                .then(() => {
-                    channel.emitToTabs(tabs[0].id, "start_page_translate", {
-                        translator: "google",
+            // Prefer direct executeScript on Safari (content-script world bypasses page CSP)
+            const isSafari = (() => {
+                if (typeof navigator === "undefined" || !navigator.userAgent) return false;
+                const ua = navigator.userAgent;
+                return (
+                    /Safari\//.test(ua) &&
+                    !/Chrome\//.test(ua) &&
+                    !/Chromium\//.test(ua) &&
+                    !/Edg\//.test(ua)
+                );
+            })();
+            if (isSafari) {
+                // Run init.js in ISOLATED world (default) so chrome.* is available; it will inject a page script (injection.js)
+                if (chrome.scripting && chrome.scripting.executeScript) {
+                    chrome.scripting
+                        .executeScript({
+                            target: { tabId: tabs[0].id, allFrames: false },
+                            files: ["google/init.js"],
+                            injectImmediately: true,
+                        })
+                        .then(() => {
+                            channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                                translator: "google",
+                            });
+                            // 보조 경로: 배너 실패 대비 DOM 폴백도 병행 트리거
+                            setTimeout(() => {
+                                channel.emitToTabs(tabs[0].id, "start_dom_page_translate", {});
+                            }, 800);
+                        })
+                        .catch(() => {
+                            try {
+                                chrome.tabs.executeScript(
+                                    tabs[0].id,
+                                    { file: "google/init.js" },
+                                    () => {
+                                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                                            translator: "google",
+                                        });
+                                        setTimeout(() => {
+                                            channel.emitToTabs(
+                                                tabs[0].id,
+                                                "start_dom_page_translate",
+                                                {}
+                                            );
+                                        }, 800);
+                                    }
+                                );
+                            } catch (error) {
+                                channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
+                                setTimeout(() => {
+                                    channel.emitToTabs(tabs[0].id, "start_dom_page_translate", {});
+                                }, 800);
+                            }
+                        });
+                    return;
+                }
+            }
+            const hasScripting =
+                typeof chrome !== "undefined" && chrome.scripting && chrome.scripting.executeScript;
+            if (hasScripting) {
+                chrome.scripting
+                    .executeScript({
+                        target: { tabId: tabs[0].id },
+                        files: ["google/init.js"],
+                    })
+                    .then(() => {
+                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                            translator: "google",
+                        });
+                    })
+                    .catch((error) => {
+                        logWarn(`Chrome scripting error: ${error}`);
+                        // final fallback: ask content script to inject
+                        channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
                     });
-                })
-                .catch((error) => {
-                    logWarn(`Chrome scripting error: ${error}`);
-                });
+            } else {
+                // MV2-compatible executeScript via tabs
+                try {
+                    chrome.tabs.executeScript(tabs[0].id, { file: "google/init.js" }, () => {
+                        channel.emitToTabs(tabs[0].id, "start_page_translate", {
+                            translator: "google",
+                        });
+                    });
+                } catch (error) {
+                    // delegate to content script
+                    channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
+                }
+            }
         }
     });
 }
+
+/**
+ * Open Google site translate proxy for current tab URL (Safari fallback).
+ *
+ * @param {string} targetLang target language like 'en', 'zh-CN'
+ */
+// function openGoogleSiteTranslate(targetLang) {
+//     promiseTabs.query({ active: true, currentWindow: true }).then((tabs) => {
+//         if (!tabs[0]) return;
+//         const currentUrl = tabs[0].url || "";
+//         if (!currentUrl) return;
+//         const proxy = `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(
+//             targetLang
+//         )}&u=${encodeURIComponent(currentUrl)}`;
+//         try {
+//             chrome.tabs.create({ url: proxy });
+//         } catch (e) {
+//             logWarn("Open Google site translate failed", e);
+//         }
+//     });
+// }
 
 export { TranslatorManager, translatePage, executeGoogleScript };

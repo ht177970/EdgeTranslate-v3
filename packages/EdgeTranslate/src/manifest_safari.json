@@ -1,0 +1,33 @@
+{
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["./content/display/display.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_start",
+      "js": ["./content/select/select.js"],
+      "css": ["./content/select/select.css"],
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.deepl.com/*"],
+      "js": ["./content/deepl_injector.js"],
+      "all_frames": true
+    }
+  ],
+  "commands": {
+    "change_language_setting": {
+      "description": "__MSG_ChangeLanguageSetting__"
+    },
+    "exchange_source_target_lang": {
+      "description": "__MSG_ExchangeSourceAndTargetLanguage__"
+    },
+    "change_mutual_translate": {
+      "description": "__MSG_MutualTranslation__"
+    }
+  }
+}
+
+

@@ -55,7 +55,11 @@ exports.pack = gulp.series(
     setProductEnvironment,
     clean,
     gulp.parallel(eslintJS, buildJS, manifest, html, styl, packStatic),
-    packToZip
+    function maybeZip(done) {
+        // Safari는 zip 불필요 (Xcode 연동으로 대체)
+        if (browser === "safari") return done();
+        return packToZip();
+    }
 );
 /**
  * End public tasks' definition
@@ -105,7 +109,7 @@ function packToZip() {
  */
 function watcher(done) {
     gulp.watch("./src/**/*.{js,jsx}").on("change", gulp.series(eslintJS));
-    gulp.watch("./src/(manifest|manifest_chrome|manifest_firefox).json").on(
+    gulp.watch("./src/(manifest|manifest_chrome|manifest_firefox|manifest_safari).json").on(
         "change",
         gulp.series(manifest)
     );
@@ -140,6 +144,8 @@ function buildJS() {
             : "./config/webpack.dev.config.js"; // webpack 配置文件路径
 
     // Insert plugins.
+    // expose target browser to webpack config
+    process.env.EDGE_TARGET_BROWSER = browser;
     let webpack_config = require(webpack_path);
     webpack_config.plugins = webpack_config.plugins || [];
     webpack_config.plugins.push(
@@ -181,9 +187,59 @@ function buildJSDev(done) {
 function manifest() {
     let output_dir = `./build/${browser}/`;
     let manifest_patch = `./src/manifest_${browser}.json`;
+    if (browser === "safari") {
+        // Safari uses mostly Chrome-compatible manifest with limited keys.
+        manifest_patch = `./src/manifest_safari.json`;
+    }
     return gulp
         .src("./src/manifest.json", { base: "src" })
         .pipe(merge_json(manifest_patch))
+        .pipe(
+            through.obj(function (file, enc, callback) {
+                try {
+                    if (browser === "safari") {
+                        const manifestJson = JSON.parse(file.contents.toString(enc));
+                        // Remove unsupported keys for Safari
+                        if (manifestJson.background && manifestJson.background.type) {
+                            delete manifestJson.background.type;
+                        }
+                        if (manifestJson.options_ui && manifestJson.options_ui.open_in_tab !== undefined) {
+                            delete manifestJson.options_ui.open_in_tab;
+                        }
+                        if (Array.isArray(manifestJson.permissions)) {
+                            manifestJson.permissions = manifestJson.permissions.filter(
+                                (p) => p !== "notifications" && p !== "declarativeNetRequest"
+                            );
+                        }
+
+                        // Convert MV3 background service_worker to MV2 background scripts for Safari
+                        if (manifestJson.background && manifestJson.background.service_worker) {
+                            const workerFile = manifestJson.background.service_worker;
+                            manifestJson.background = { scripts: [workerFile] };
+                        }
+
+                        // Convert MV3 CSP object to MV2 string for Safari
+                        if (manifestJson.content_security_policy) {
+                            if (typeof manifestJson.content_security_policy === "object") {
+                                manifestJson.content_security_policy =
+                                    "script-src 'self'; object-src 'self'";
+                            }
+                        }
+
+                        // Remove declarative_net_request rules for Safari
+                        if (manifestJson.declarative_net_request) {
+                            delete manifestJson.declarative_net_request;
+                        }
+
+                        file.contents = Buffer.from(JSON.stringify(manifestJson));
+                    }
+                } catch (e) {
+                    log(e);
+                }
+                this.push(file);
+                callback();
+            })
+        )
         .pipe(gulp.dest(output_dir));
 }
 
@@ -225,14 +281,16 @@ function packStatic() {
             .pipe(terser().on("error", (error) => log(error)))
             .pipe(gulp.dest(output_dir));
 
-        // google page translation files
-        // Do not uglify element_main.js
-        let googleJS = gulp
-            .src("./static/google/element_main.js", {
-                base: "static",
-                since: gulp.lastRun(packStatic),
-            })
-            .pipe(gulp.dest(output_dir));
+        // Optionally copy Google element_main.js without minifying (Chrome only)
+        let googleJS = null;
+        if (browser === "chrome") {
+            googleJS = gulp
+                .src("./static/google/element_main.js", {
+                    base: "static",
+                    allowEmpty: true,
+                })
+                .pipe(gulp.dest(output_dir));
+        }
 
         // non-js static files
         let staticOtherFiles = gulp
@@ -250,23 +308,22 @@ function packStatic() {
             ], { base: "../../node_modules/pdfjs-dist" })
             .pipe(gulp.dest(`${output_dir}build/`));
 
-        return mergeStream([staticJSFiles, googleJS, staticOtherFiles, webAssets, pdfjsCore]);
+        const streams = [staticJSFiles, staticOtherFiles, webAssets, pdfjsCore];
+        if (googleJS) streams.push(googleJS);
+        return mergeStream(streams);
     }
-    // static JS files except google JS
+    // static JS files except google JS; exclude entire google dir for non-Chrome
     let staticJSFiles = gulp
-        .src("./static/**/!(element_main).js", { base: "static" })
+        .src(["./static/**/!(element_main).js", "!./static/google/**/*.js"], { base: "static" })
         .pipe(terser().on("error", (error) => log(error)))
         .pipe(gulp.dest(output_dir));
 
-    // google page translation files
-    // Do not uglify element_main.js
-    let googleJS = gulp
-        .src("./static/google/element_main.js", { base: "static" })
-        .pipe(gulp.dest(output_dir));
+    // Do not copy any Google translate JS for non-Chrome builds
+    let googleJS = null;
 
-    // non-js static files
+    // non-js static files; exclude entire google dir for non-Chrome
     let staticOtherFiles = gulp
-        .src("./static/**/!(*.js)", { base: "static" })
+        .src(["./static/**/!(*.js)", "!./static/google/**"], { base: "static" })
         .pipe(gulp.dest(output_dir));
 
     // pdf.js viewer assets under ./web/**
@@ -280,7 +337,9 @@ function packStatic() {
         ], { base: "../../node_modules/pdfjs-dist" })
         .pipe(gulp.dest(`${output_dir}build/`));
 
-    return mergeStream([staticJSFiles, googleJS, staticOtherFiles, webAssets, pdfjsCore]);
+    const streams = [staticJSFiles, staticOtherFiles, webAssets, pdfjsCore];
+    if (googleJS) streams.push(googleJS);
+    return mergeStream(streams);
 }
 /**
  * End private tasks' definition
