@@ -192,14 +192,8 @@ export default function ResultPanel() {
                             if (normLang) utter.lang = normLang;
                             if (voice) utter.voice = voice;
                             // 한국어는 너무 빠르게 들리는 경향 보정
-                            const isKorean = (utter.lang || "").toLowerCase().startsWith("ko");
-                            // Edge(Chromium) 등 일부 브라우저에서 기본 rate가 다르게 체감되는 문제 보정
-                            const ua = (navigator.userAgent || "").toLowerCase();
-                            const isEdgeLike = /edg\//.test(ua) && !/chrome\//.test(ua);
-                            const baseFast = isKorean ? 0.9 : 1.0;
-                            const baseSlow = isKorean ? 0.7 : 0.85;
-                            const adjust = isEdgeLike ? -0.05 : 0;
-                            utter.rate = (speed === "fast" ? baseFast : baseSlow) + adjust;
+                            // 언어/브라우저별 속도 튜닝 제거: 일관된 기본 속도 사용
+                            utter.rate = speed === "fast" ? 1.0 : 0.8;
                             // 약간의 톤 보정
                             utter.pitch = 1.0;
                         } catch {}
