@@ -6,13 +6,9 @@
 //
 
 import SafariServices
-import AVFoundation
 import os.log
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
-
-    // 공유 합성기 (요청 간 유지)
-    static let synthesizer = AVSpeechSynthesizer()
 
     func beginRequest(with context: NSExtensionContext) {
         let request = context.inputItems.first as? NSExtensionItem
@@ -31,24 +27,16 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             message = request?.userInfo?["message"]
         }
 
-        os_log(.default, "[EdgeTranslate] Native message: %@ (profile: %@)", String(describing: message), profile?.uuidString ?? "none")
+        os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@ (profile: %@)", String(describing: message), profile?.uuidString ?? "none")
 
-        var payload: [String: Any] = [:]
-        if let dict = message as? [String: Any] {
-            payload = dict
+        let response = NSExtensionItem()
+        if #available(iOS 15.0, macOS 11.0, *) {
+            response.userInfo = [ SFExtensionMessageKey: [ "echo": message ] ]
+        } else {
+            response.userInfo = [ "message": [ "echo": message ] ]
         }
 
-        let action = (payload["action"] as? String) ?? ""
-        switch action {
-        default:
-            let response = NSExtensionItem()
-            if #available(iOS 15.0, macOS 11.0, *) {
-                response.userInfo = [ SFExtensionMessageKey: [ "echo": message ?? [:] ] ]
-            } else {
-                response.userInfo = [ "message": [ "echo": message ?? [:] ] ]
-            }
-            context.completeRequest(returningItems: [ response ], completionHandler: nil)
-        }
+        context.completeRequest(returningItems: [ response ], completionHandler: nil)
     }
 
 }
