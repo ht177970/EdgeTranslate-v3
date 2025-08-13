@@ -260,14 +260,17 @@ export default function ResultPanel() {
 
         try {
             // Safari 네이티브 브리지 우선 시도 (AVSpeechSynthesizer)
-            if (isSafariUA() && (chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage)) {
+            if (
+                isSafariUA() &&
+                (chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage)
+            ) {
                 const appId = "com.meapri.EdgeTranslate";
-                const normLang = normalizeBCP47(language || "");
-                const rate = speed === "fast" ? 1.0 : 0.8;
-                const payload = { action: "tts", text, language: normLang, rate };
+                const payload = { action: "tts", text };
                 await new Promise((resolve) => {
                     try {
-                        const fn = chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage;
+                        const fn =
+                            chrome?.runtime?.sendNativeMessage ||
+                            browser?.runtime?.sendNativeMessage;
                         const maybePromise = fn.call(
                             chrome?.runtime || browser?.runtime,
                             appId,
@@ -287,7 +290,14 @@ export default function ResultPanel() {
                 // 네이티브 처리 완료로 간주하고 완료 신호 전송
                 channel
                     .request("tts_finished", { pronouncing, text, language, timestamp })
-                    .catch(() => channel.emit("pronouncing_finished", { pronouncing, text, language, timestamp }));
+                    .catch(() =>
+                        channel.emit("pronouncing_finished", {
+                            pronouncing,
+                            text,
+                            language,
+                            timestamp,
+                        })
+                    );
                 return;
             }
 
@@ -413,12 +423,22 @@ export default function ResultPanel() {
     const stopTTS = useCallback(() => {
         try {
             // Safari 네이티브 브리지 중지 전달
-            if (isSafariUA() && (chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage)) {
+            if (
+                isSafariUA() &&
+                (chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage)
+            ) {
                 const appId = "com.meapri.EdgeTranslate";
                 const payload = { action: "tts_stop" };
                 try {
-                    const fn = chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage;
-                    const maybePromise = fn.call(chrome?.runtime || browser?.runtime, appId, payload, () => {});
+                    const fn =
+                        chrome?.runtime?.sendNativeMessage ||
+                        browser?.runtime?.sendNativeMessage;
+                    const maybePromise = fn.call(
+                        chrome?.runtime || browser?.runtime,
+                        appId,
+                        payload,
+                        () => {}
+                    );
                     if (maybePromise && typeof maybePromise.then === "function") {
                         // no-op
                     }

@@ -42,17 +42,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         switch action {
         case "tts":
             let text = (payload["text"] as? String) ?? ""
-            let lang = (payload["language"] as? String) ?? ""
-            let rate = (payload["rate"] as? Double) ?? 1.0
-
             let utter = AVSpeechUtterance(string: text)
-            if !lang.isEmpty {
-                utter.voice = AVSpeechSynthesisVoice(language: lang)
-            }
-            // Web rate(0.8~1.0) -> AVSpeechUtterance rate 맵핑(대략적인 기본값)
-            let base: Float = AVSpeechUtteranceDefaultSpeechRate
-            utter.rate = base + Float((rate - 1.0) * 0.1)
-            utter.pitchMultiplier = 1.0
+            // 시스템 기본 보이스/속도 그대로 사용 (심플)
 
             SafariWebExtensionHandler.synthesizer.speak(utter)
 
