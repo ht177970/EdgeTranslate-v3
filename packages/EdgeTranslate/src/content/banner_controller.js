@@ -15,6 +15,10 @@ class BannerController {
         // Message listener canceller.
         this.canceller = null;
 
+        // Avoid redundant layout work
+        this.lastDistance = null;
+        this._moveRaf = null;
+
         this.addListeners();
     }
 
@@ -90,14 +94,17 @@ class BannerController {
         const current = parseInt(orig || "0", 10) || 0;
         const target = absolute ? distance : current + distance;
         if (current === target) return;
-        try {
-            document.body.style.cssText = document.body.style.cssText.replace(
-                new RegExp(`${property}:.*;`, "g"),
-                `${property}: ${target}px !important;`
-            );
-        } catch {
-            document.body.style.setProperty(property, `${target}px`, "important");
-        }
+        if (this._moveRaf) cancelAnimationFrame(this._moveRaf);
+        this._moveRaf = requestAnimationFrame(() => {
+            try {
+                document.body.style.cssText = document.body.style.cssText.replace(
+                    new RegExp(`${property}:.*;`, "g"),
+                    `${property}: ${target}px !important;`
+                );
+            } catch {
+                document.body.style.setProperty(property, `${target}px`, "important");
+            }
+        });
     }
 
     /**
@@ -107,7 +114,13 @@ class BannerController {
      * @returns {void} nothing
      */
     googleMessageHandler(msg) {
-        let data = JSON.parse(msg.data);
+        let data;
+        try {
+            if (typeof msg.data !== "string") return;
+            data = JSON.parse(msg.data);
+        } catch {
+            return;
+        }
         if (!data.type || data.type !== "edge_translate_page_translate_event") return;
 
         switch (data.event) {
@@ -116,12 +129,22 @@ class BannerController {
                 // If the distance property is positive, it means the banner is created, and
                 // the page has been moved down. Else if it is negative, it means the banner is
                 // destroyed, and the banner has been moved up.
+                // Skip duplicate distances to avoid redundant layout work
+                if (typeof data.distance === "number" && data.distance === this.lastDistance) {
+                    break;
+                }
+                this.lastDistance = data.distance;
+
                 getOrSetDefaultSettings("HidePageTranslatorBanner", DEFAULT_SETTINGS).then(
                     (result) => {
                         if (result.HidePageTranslatorBanner) {
                             this.toggleBannerFrame(false);
                             // Keep top at 0px.
                             this.movePage("top", 0, true);
+                        } else if (data.distance > 0) {
+                            // Ensure page is positioned for banner if user allows it
+                            this.toggleBannerFrame(true);
+                            this.movePage("top", 40, true);
                         }
                     }
                 );
