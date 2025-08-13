@@ -1,0 +1,53 @@
+default_platform(:mac)
+
+platform :mac do
+  desc "Build and upload macOS Safari app to App Store Connect"
+  lane :release do
+    sh("npm run build:safari")
+    sh("npm run safari:archive")
+    sh("npm run safari:export")
+
+    pkg_path = "safari-xcode/build/export/EdgeTranslate.pkg"
+
+    UI.user_error!("Package not found at #{pkg_path}") unless File.exist?(pkg_path)
+
+    deliver(
+      username: ENV['FASTLANE_APPLE_ID'] || ENV['APPLE_ID'],
+      app_identifier: ENV['FASTLANE_APP_IDENTIFIER'] || 'com.meapri.EdgeTranslate',
+      pkg: pkg_path,
+      skip_metadata: true,
+      skip_screenshots: true,
+      submit_for_review: false,
+      force: true
+    )
+  end
+
+  desc "Upload metadata only (descriptions, keywords, URLs)"
+  lane :metadata do
+    deliver(
+      username: ENV['FASTLANE_APPLE_ID'] || ENV['APPLE_ID'],
+      app_identifier: ENV['FASTLANE_APP_IDENTIFIER'] || 'com.meapri.EdgeTranslate',
+      metadata_path: 'fastlane/metadata',
+      screenshots_path: 'fastlane/screenshots',
+      skip_screenshots: true,
+      skip_binary_upload: true,
+      force: true
+    )
+  end
+
+  desc "Upload screenshots (expects files under fastlane/screenshots)"
+  lane :screenshots do
+    # If you later add an automated generator, invoke it here before deliver
+    deliver(
+      username: ENV['FASTLANE_APPLE_ID'] || ENV['APPLE_ID'],
+      app_identifier: ENV['FASTLANE_APP_IDENTIFIER'] || 'com.meapri.EdgeTranslate',
+      metadata_path: 'fastlane/metadata',
+      screenshots_path: 'fastlane/screenshots',
+      skip_metadata: true,
+      skip_binary_upload: true,
+      force: true
+    )
+  end
+end
+
+

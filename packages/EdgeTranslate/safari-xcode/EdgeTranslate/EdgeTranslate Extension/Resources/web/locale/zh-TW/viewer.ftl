@@ -1,13 +1,25 @@
 ## EdgeTranslate custom
 
 et-theme-section = 主題
-et-theme-auto = 自動
-et-theme-light = 淺色
-et-theme-dark = 深色
+et-theme-auto =
+    .title = 自動
+    .aria-label = 自動
+et-theme-light =
+    .title = 淺色
+    .aria-label = 淺色
+et-theme-dark =
+    .title = 深色
+    .aria-label = 深色
 et-page-section = 頁面
-et-page-auto = 自動
-et-page-light = 淺色
-et-page-dark = 深色（反轉）
+et-page-auto =
+    .title = 自動
+    .aria-label = 自動
+et-page-light =
+    .title = 淺色
+    .aria-label = 淺色
+et-page-dark =
+    .title = 深色（反轉）
+    .aria-label = 深色（反轉）
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this

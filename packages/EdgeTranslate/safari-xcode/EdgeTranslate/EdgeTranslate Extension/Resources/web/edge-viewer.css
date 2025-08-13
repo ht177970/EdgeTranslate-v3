@@ -37,7 +37,10 @@ html, body {
 
 /* Page inversion (PDF content only, toolbar 제외) */
 html[data-page-theme="dark"] .pdfViewer .page {
-  filter: invert(1) hue-rotate(180deg) saturate(0.85) contrast(0.95) brightness(0.9);
+  /* From original EdgeTranslate */
+  filter: brightness(0.85) grayscale(0.15) invert(1.0) hue-rotate(0.5turn);
+  border-image: none;
+  box-shadow: none;
 }
 
 /* Revert inversion for common overlay assets (annotations/icons), keep natural colors */

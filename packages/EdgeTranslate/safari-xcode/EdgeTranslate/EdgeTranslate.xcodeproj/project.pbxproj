@@ -64,7 +64,8 @@
 		9BA8CF082E4BB01C008E2B4C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		9BA8CF0B2E4BB01C008E2B4C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9BA8CF0D2E4BB01D008E2B4C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9BA8CF0F2E4BB01D008E2B4C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+        9BA8CF0F2E4BB01D008E2B4C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+        PRIVACYFILE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = EdgeTranslate/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
 		9BA8CF142E4BB01D008E2B4C /* EdgeTranslate Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "EdgeTranslate Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BA8CF192E4BB01D008E2B4C /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
 		9BA8CF1B2E4BB01D008E2B4C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -120,6 +121,7 @@
 		9BA8CEFB2E4BB01C008E2B4C /* EdgeTranslate */ = {
 			isa = PBXGroup;
 			children = (
+				PRIVACYFILE /* PrivacyInfo.xcprivacy */,
 				9BA8CEFC2E4BB01C008E2B4C /* AppDelegate.swift */,
 				9BA8CF082E4BB01C008E2B4C /* ViewController.swift */,
 				9BA8CF0A2E4BB01C008E2B4C /* Main.storyboard */,

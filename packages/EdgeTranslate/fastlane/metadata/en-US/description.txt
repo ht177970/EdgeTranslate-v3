@@ -1,0 +1,9 @@
+Edge Translate helps you translate selected text and view PDFs with a polished viewer.
+
+What’s New in 2.7
+- Added macOS Safari support (Full Page Translation not supported on Safari due to platform policy)
+- Improved TTS voice selection and performance
+- PDF viewer refinements and Page dark mode (color inversion)
+- Removed analytics; added Korean localization and filled missing strings
+
+

@@ -17,7 +17,11 @@
         "e2e:chrome": "SELENIUM_BROWSER=chrome jest -i --config './test/e2e/jest/jest.config.js'",
         "e2e:firefox": "SELENIUM_BROWSER=firefox jest -i --config './test/e2e/jest/jest.config.js'",
         "build:parallel": "sh -c '(gulp pack --browser chrome) & (gulp pack --browser firefox) & (gulp build --browser safari && npm run safari:rsync) & wait'",
-        "build": "npm run build:parallel"
+        "build": "npm run build:parallel",
+        "safari:archive": "xcodebuild -project safari-xcode/EdgeTranslate/EdgeTranslate.xcodeproj -scheme EdgeTranslate -configuration Release -archivePath safari-xcode/build/EdgeTranslate.xcarchive archive",
+        "safari:export": "xcodebuild -exportArchive -archivePath safari-xcode/build/EdgeTranslate.xcarchive -exportOptionsPlist safari-xcode/ExportOptions.plist -exportPath safari-xcode/build/export",
+        "safari:upload": "xcrun altool --upload-app -f 'safari-xcode/build/export/EdgeTranslate.pkg' -t macos -u $APPLE_ID -p $APP_SPEC_PASS",
+        "safari:release": "npm run build:safari && npm run safari:archive && npm run safari:export && npm run safari:upload"
     },
     "devDependencies": {
         "@babel/core": "^7.17.7",

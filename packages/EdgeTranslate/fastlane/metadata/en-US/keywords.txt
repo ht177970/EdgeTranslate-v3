@@ -1,0 +1,3 @@
+translate, pdf, safari, chrome extension, firefox add-on, tts, dictionary, page translate
+
+
