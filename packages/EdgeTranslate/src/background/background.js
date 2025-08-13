@@ -73,7 +73,7 @@ try {
             `web/viewer.html?file=${encodeURIComponent(url)}&source=${encodeURIComponent(url)}`
         );
 
-        // 탭 업데이트로 리디렉션
+        // 탭 업데이트로 리디렉션 (드래그/로컬 파일 등 기타 경로는 지원하지 않음)
         try {
             await chrome.tabs.update(details.tabId, { url: viewerUrl });
         } catch (e) {
@@ -727,6 +727,7 @@ function setupContextMenus() {
     if (contextMenusInitialized) return;
     // Clear existing menus first to avoid duplicate id errors on SW restart/reload
     const createAll = () => {
+        const isSafari = BROWSER_ENV === "safari";
         chrome.contextMenus.create({
             id: "translate",
             title: `${chrome.i18n.getMessage("Translate")} '%s'`,
@@ -748,17 +749,21 @@ function setupContextMenus() {
             contexts: ["action"],
         });
 
-        chrome.contextMenus.create({
-            id: "translate_page",
-            title: chrome.i18n.getMessage("TranslatePage"),
-            contexts: ["page"],
-        });
+        if (!isSafari) {
+            chrome.contextMenus.create({
+                id: "translate_page",
+                title: chrome.i18n.getMessage("TranslatePage"),
+                contexts: ["page"],
+            });
+        }
 
-        chrome.contextMenus.create({
-            id: "translate_page_google",
-            title: chrome.i18n.getMessage("TranslatePageGoogle"),
-            contexts: ["action"],
-        });
+        if (!isSafari) {
+            chrome.contextMenus.create({
+                id: "translate_page_google",
+                title: chrome.i18n.getMessage("TranslatePageGoogle"),
+                contexts: ["action"],
+            });
+        }
 
         chrome.contextMenus.create({
             id: "add_url_blacklist",

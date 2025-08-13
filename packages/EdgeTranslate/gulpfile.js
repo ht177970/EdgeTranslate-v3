@@ -140,6 +140,8 @@ function buildJS() {
             : "./config/webpack.dev.config.js"; // webpack 配置文件路径
 
     // Insert plugins.
+    // expose target browser to webpack config
+    process.env.EDGE_TARGET_BROWSER = browser;
     let webpack_config = require(webpack_path);
     webpack_config.plugins = webpack_config.plugins || [];
     webpack_config.plugins.push(
@@ -275,14 +277,16 @@ function packStatic() {
             .pipe(terser().on("error", (error) => log(error)))
             .pipe(gulp.dest(output_dir));
 
-        // google page translation files
-        // Do not uglify element_main.js
-        let googleJS = gulp
-            .src("./static/google/element_main.js", {
-                base: "static",
-                since: gulp.lastRun(packStatic),
-            })
-            .pipe(gulp.dest(output_dir));
+        // Optionally copy Google element_main.js without minifying (non-Safari builds)
+        let googleJS = null;
+        if (browser !== "safari") {
+            googleJS = gulp
+                .src("./static/google/element_main.js", {
+                    base: "static",
+                    allowEmpty: true,
+                })
+                .pipe(gulp.dest(output_dir));
+        }
 
         // non-js static files
         let staticOtherFiles = gulp
@@ -300,7 +304,9 @@ function packStatic() {
             ], { base: "../../node_modules/pdfjs-dist" })
             .pipe(gulp.dest(`${output_dir}build/`));
 
-        return mergeStream([staticJSFiles, googleJS, staticOtherFiles, webAssets, pdfjsCore]);
+        const streams = [staticJSFiles, staticOtherFiles, webAssets, pdfjsCore];
+        if (googleJS) streams.push(googleJS);
+        return mergeStream(streams);
     }
     // static JS files except google JS
     let staticJSFiles = gulp
@@ -308,11 +314,13 @@ function packStatic() {
         .pipe(terser().on("error", (error) => log(error)))
         .pipe(gulp.dest(output_dir));
 
-    // google page translation files
-    // Do not uglify element_main.js
-    let googleJS = gulp
-        .src("./static/google/element_main.js", { base: "static" })
-        .pipe(gulp.dest(output_dir));
+    // Optionally copy Google element_main.js without minifying (non-Safari builds)
+    let googleJS = null;
+    if (browser !== "safari") {
+        googleJS = gulp
+            .src("./static/google/element_main.js", { base: "static", allowEmpty: true })
+            .pipe(gulp.dest(output_dir));
+    }
 
     // non-js static files
     let staticOtherFiles = gulp
@@ -330,7 +338,9 @@ function packStatic() {
         ], { base: "../../node_modules/pdfjs-dist" })
         .pipe(gulp.dest(`${output_dir}build/`));
 
-    return mergeStream([staticJSFiles, googleJS, staticOtherFiles, webAssets, pdfjsCore]);
+    const streams = [staticJSFiles, staticOtherFiles, webAssets, pdfjsCore];
+    if (googleJS) streams.push(googleJS);
+    return mergeStream(streams);
 }
 /**
  * End private tasks' definition

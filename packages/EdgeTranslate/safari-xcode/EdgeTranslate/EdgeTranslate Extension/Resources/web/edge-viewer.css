@@ -195,7 +195,7 @@ html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
   gap: 6px;
 }
 
-/* PDF.js menus and doorhangers */
+/* PDF.js menus and doorhangers (공통 톤) */
 html[data-theme] .doorHanger,
 html[data-theme] .doorHangerRight,
 html[data-theme] #secondaryToolbar,
@@ -243,7 +243,7 @@ html[data-theme] .menuContainer button {
 
 /* Make secondary toolbar menu a bit wider and visually grouped */
 #secondaryToolbar .menuContainer {
-  width: 100% !important; /* match base background rectangle width */
+  width: 100% !important; /* 배경 직사각형 폭과 일치시켜 좌우 잘림 방지 */
   min-width: 240px !important;
   box-sizing: border-box !important;
   padding: 6px 8px !important;
@@ -292,11 +292,20 @@ html[data-theme] .menuContainer button {
 /* Merge adjacent menu buttons into a single visual group */
 #secondaryToolbar .menuContainer button,
 #secondaryToolbar .menuContainer a.toolbarButton {
+  /* 공통 레이아웃/모양 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important; /* hard cap to container width */
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+
+  /* 공통 모양/간격 */
   border-radius: 0 !important;
   border: none !important;
   padding: 8px 12px !important; /* symmetric left/right to match container */
   gap: 8px !important;
-  width: 100% !important; /* hard cap to container width */
   margin: 0 !important;
   overflow: visible !important; /* prevent icon masks from being clipped */
 }
@@ -382,7 +391,7 @@ html[data-theme] .menuContainer button {
 #secondaryToolbar .menuContainer a.toolbarButton.labeled::before {
   width: var(--icon-size) !important;
   height: var(--icon-size) !important;
-  margin-inline-end: 8px !important;
+  margin-inline: 2px 8px !important; /* 좌측 여백 추가로 아이콘 잘림 방지 */
 }
 
 #secondaryToolbar .menuContainer .toolbarButton.labeled > span,
@@ -396,6 +405,7 @@ html[data-theme] .menuContainer button {
   min-width: 0 !important; /* allow flex shrink for ellipsis */
   font-size: 13px !important;
   line-height: 1.25 !important;
+  padding-inline: 0; /* 기본과 동일 유지 */
 }
 
 /* Symmetric horizontal padding for labeled buttons to keep hover bg inside container */
@@ -404,16 +414,7 @@ html[data-theme] .menuContainer button {
   padding-inline-end: 12px !important;
 }
 
-/* Ensure anchor-based toolbar items also fill and align */
-#secondaryToolbar .menuContainer a.toolbarButton {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  background: transparent !important;
-}
+/* (중복 제거) a.toolbarButton 레이아웃 규칙은 위 공통 블록으로 통합 */
 
 /* Ensure any wrappers/sections inside the menu take the same width as the background */
 #secondaryToolbar .menuContainer .visibleMediumView,
@@ -429,16 +430,10 @@ html[data-theme] .menuContainer button {
 /* Normalize the "현재 페이지"-related items (e.g., viewBookmark/current item) to match others */
 #secondaryToolbar #viewBookmark,
 #secondaryToolbar #currentOutlineItem {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
+  /* 상단 공통 블록에서 이미 레이아웃 규칙을 지정했으므로 여기선 차별 요소만 */
   min-height: var(--menu-item-height) !important;
   padding: 8px 12px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
   text-decoration: none !important;
-  background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
 }
@@ -590,6 +585,8 @@ html[data-theme] #findbar input {
   line-height: normal;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  padding-inline: 4px; /* 사파리에서 아이콘이 경계에 붙어 잘리는 현상 완화 (크롬 시각 유지) */
+  overflow: visible !important; /* 마스크 아이콘이 컨테이너를 넘어가도 잘리지 않도록 */
 }
 
 /* Ensure theme toggle inherits the same font-size and vertical metrics as other buttons */
@@ -601,6 +598,7 @@ html[data-theme] #findbar input {
   display: inline-block !important;
   width: var(--icon-size) !important;
   height: var(--icon-size) !important;
+  margin-inline: 0; /* 기본과 동일 유지, 잘림은 컨테이너 폭/패딩으로 해결 */
 }
 
 /* Ensure all top toolbar controls share identical height/vertical alignment */
@@ -613,6 +611,8 @@ html[data-theme] #findbar input {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   box-sizing: border-box;
+  padding-inline: 4px; /* 상단 툴바도 동일 보정 */
+  overflow: visible !important;
 }
 
 /* Restore native switch sizing/flow inside menus (avoid icon-size forcing) */

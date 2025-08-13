@@ -4,7 +4,6 @@ const channel = new Channel();
 
 async function injectGooglePageTranslator() {
     try {
-        // Ask background for user UI language
         const response = await new Promise((resolve) => {
             chrome.runtime.sendMessage(
                 JSON.stringify({ type: "service", service: "get_lang" }),
@@ -22,16 +21,27 @@ async function injectGooglePageTranslator() {
         s.src = `${chrome.runtime.getURL("")}google/injection.js`;
         s.setAttribute("user-lang", userLang);
         s.setAttribute("edge-translate-url", chrome.runtime.getURL(""));
+        s.setAttribute("referrerpolicy", "no-referrer");
+        s.integrity = "";
         document.head.appendChild(s);
 
-        // Notify UI layer to start banner handling just like background would
         channel.emit("start_page_translate", { translator: "google" });
-    } catch (error) {
-        // No-op; rely on background fallback if needed
-    }
+    } catch {}
 }
 
-// Listen for explicit inject request from background
 channel.on("inject_page_translate", () => {
     injectGooglePageTranslator();
 });
+
+try {
+    // 사파리에선 manifest에서 이 파일이 로드되지 않음
+    if (document.readyState === "loading") {
+        window.addEventListener("DOMContentLoaded", () => injectGooglePageTranslator(), {
+            once: true,
+        });
+    } else {
+        setTimeout(() => injectGooglePageTranslator(), 0);
+    }
+} catch {}
+
+

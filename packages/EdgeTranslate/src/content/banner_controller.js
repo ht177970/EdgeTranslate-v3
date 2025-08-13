@@ -35,6 +35,15 @@ class BannerController {
                         this.canceller = (() => {
                             window.removeEventListener("message", handler);
                         }).bind(this);
+                        // 보조 경로: 배너 이벤트가 오지 않으면 DOM 기반 번역으로 폴백
+                        try {
+                            setTimeout(() => {
+                                const banner = document.getElementById(":0.container");
+                                if (!banner) {
+                                    this.channel.emit("start_dom_page_translate", {});
+                                }
+                            }, 1200);
+                        } catch {}
                         break;
                     }
                     default:

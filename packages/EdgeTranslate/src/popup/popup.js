@@ -167,9 +167,17 @@ function addEventListener() {
     document.getElementById("translateSubmit").addEventListener("click", translateSubmit);
     document.addEventListener("keypress", translatePreSubmit); // 对用户按下回车按键后的事件进行监听
     document.getElementById("setting-switch").addEventListener("click", settingSwitch);
-    document.getElementById("google-page-translate").addEventListener("click", () => {
-        channel.emit("translate_page_google", {});
-    });
+    try {
+        const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+        const isSafari = /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+        if (!isSafari) {
+            document.getElementById("google-page-translate").addEventListener("click", () => {
+                channel.emit("translate_page_google", {});
+            });
+            const row = document.getElementById("page-translate");
+            if (row) row.style.display = "flex";
+        }
+    } catch {}
 }
 
 /**
