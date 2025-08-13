@@ -83,7 +83,12 @@ function normalizeBCP47(lang) {
 function isSafariUA() {
     if (typeof navigator === "undefined" || !navigator.userAgent) return false;
     const ua = navigator.userAgent;
-    return /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+    return (
+        /Safari\//.test(ua) &&
+        !/Chrome\//.test(ua) &&
+        !/Chromium\//.test(ua) &&
+        !/Edg\//.test(ua)
+    );
 }
 
 function scoreVoiceFor(langBCP47, voice) {
