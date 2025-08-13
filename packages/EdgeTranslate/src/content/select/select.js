@@ -287,16 +287,42 @@ function getSelection() {
  * - 여분 공백 축소
  */
 function normalizePdfSelectionText(input) {
-    // 통일된 개행
-    let s = String(input).replace(/\r\n?/g, "\n");
+    // 통일된 개행 및 제어문자/제로폭 공백 제거
+    let s = String(input)
+        .replace(/\r\n?/g, "\n")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width
+        .replace(/\u00AD/g, ""); // soft hyphen
+
+    // 전각 공백을 보통 공백으로
+    s = s.replace(/\u3000/g, " ");
+
     // 하이픈 줄바꿈 결합(영문 위주 안전 규칙)
     s = s.replace(/([A-Za-z])\-\n([A-Za-z])/g, "$1$2");
-    // 단일 개행을 공백으로(단락 구분 \n\n 은 유지)
-    // 먼저 단락 구분을 임시 토큰으로 보존
+
+    // 단락 구분 토큰 보존
     const PARA = "\u0001\u0001__ET_PARA__\u0001\u0001";
     s = s.replace(/\n\n+/g, PARA);
+
+    // 단일 개행을 일단 공백으로 치환
     s = s.replace(/\n+/g, " ");
+
+    // CJK 문자가 포함된 경우: CJK 사이의 공백 제거로 자연스럽게 문장 연결
+    const CJK = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uAC00-\uD7AF]/; // 히라가나/가타카나/한자/한글
+    if (CJK.test(s)) {
+        // CJK <space> CJK → 붙여쓰기
+        s = s.replace(
+            new RegExp("([\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF])\\s+([\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF])", "g"),
+            "$1$2"
+        );
+        // 여는 괄호류 뒤 공백 제거, 닫는 괄호/문장부호 앞 공백 제거
+        s = s
+            .replace(/([\(\[\{\u3008\u300A\u300C\u300E\u3010\uFF08\uFF3B\uFF5B\u201C\u3001])\s+/g, "$1")
+            .replace(/\s+([\)\]\}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g, "$1");
+    }
+
+    // 단락 토큰 복원
     s = s.replace(new RegExp(PARA, "g"), "\n\n");
+
     // 다중 공백 축소
     s = s.replace(/\s{2,}/g, " ");
     return s.trim();
