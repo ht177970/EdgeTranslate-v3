@@ -58,6 +58,13 @@ class BannerController {
                     break;
             }
         });
+
+        // Background may request canceling DOM fallback scheduling when banner is visible
+        this.channel.on("page_translate_control", (detail) => {
+            if (detail && detail.action === "cancel_dom_fallback") {
+                // nothing needed here yet (fallback scheduling is background-side), keep hook for future use
+            }
+        });
     }
 
     /**

@@ -1007,6 +1007,12 @@ channel.on("open_options_page", () => chrome.runtime.openOptionsPage());
  * Forward page translate event back to pages.
  */
 channel.on("page_translate_event", (detail, sender) => {
+    try {
+        // 배너 생성으로 페이지가 내려간 경우 DOM 폴백 예약 취소 신호만 보냄
+        if (detail && detail.event === "page_moved" && typeof detail.distance === "number" && detail.distance > 0) {
+            channel.emitToTabs(sender.tab.id, "page_translate_control", { action: "cancel_dom_fallback" });
+        }
+    } catch {}
     channel.emitToTabs(sender.tab.id, "page_translate_event", detail);
 });
 
