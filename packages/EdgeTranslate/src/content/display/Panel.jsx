@@ -98,6 +98,7 @@ function scoreVoiceFor(langBCP47, voice) {
         score += 5;
     if (voice.lang && voice.lang.toLowerCase() === langBCP47.toLowerCase()) score += 10;
     const name = (voice.name || "").toLowerCase();
+    const uri = (voice.voiceURI || "").toLowerCase();
     const ua = typeof navigator !== "undefined" ? (navigator.userAgent || "").toLowerCase() : "";
     const isWindows = /windows/.test(ua);
     // Prefer local voices to avoid online/streamed voices when possible
@@ -110,8 +111,8 @@ function scoreVoiceFor(langBCP47, voice) {
     if (voice.default) score += 2;
     // Korean-specific preferred voice names
     if (langBCP47.startsWith("ko")) {
-        // If Siri voices are exposed, strongly prefer them
-        if (name.includes("siri")) {
+        // If Siri voices are exposed, strongly prefer them (check name and URI)
+        if (name.includes("siri") || uri.includes("siri")) {
             score += 12;
         }
         if (name.includes("korean")) score += 4;
@@ -132,11 +133,12 @@ async function pickBestVoice(lang) {
     }
     const list = cachedVoices || (await loadVoices());
     if (!list || !list.length) return { lang: normalized, voice: null };
-    // Safari + 한국어: Siri가 노출된다면 우선 선택
+    // Safari + 한국어: Siri가 노출된다면 우선 선택 (이름/URI 모두 확인)
     if (isSafariUA() && normalized.startsWith("ko")) {
         const siri = list.find((v) => {
             const n = (v.name || "").toLowerCase();
-            return /siri/.test(n) && v.localService !== false;
+            const u = (v.voiceURI || "").toLowerCase();
+            return (n.includes("siri") || u.includes("siri")) && v.localService !== false;
         });
         if (siri) {
             lastVoiceByLang.set(cacheKey, siri);
