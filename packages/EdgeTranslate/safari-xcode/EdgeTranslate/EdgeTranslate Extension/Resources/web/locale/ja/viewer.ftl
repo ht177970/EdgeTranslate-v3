@@ -1,3 +1,26 @@
+## EdgeTranslate custom
+
+et-theme-section = テーマ
+et-theme-auto =
+    .title = 自動
+    .aria-label = 自動
+et-theme-light =
+    .title = ライト
+    .aria-label = ライト
+et-theme-dark =
+    .title = ダーク
+    .aria-label = ダーク
+et-page-section = ページ
+et-page-auto =
+    .title = 自動
+    .aria-label = 自動
+et-page-light =
+    .title = ライト
+    .aria-label = ライト
+et-page-dark =
+    .title = ダーク（反転）
+    .aria-label = ダーク（反転）
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.

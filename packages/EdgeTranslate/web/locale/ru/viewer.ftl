@@ -1,13 +1,25 @@
 ## EdgeTranslate custom
 
 et-theme-section = Тема
-et-theme-auto = Авто
-et-theme-light = Светлая
-et-theme-dark = Тёмная
+et-theme-auto =
+    .title = Авто
+    .aria-label = Авто
+et-theme-light =
+    .title = Светлая
+    .aria-label = Светлая
+et-theme-dark =
+    .title = Тёмная
+    .aria-label = Тёмная
 et-page-section = Страница
-et-page-auto = Авто
-et-page-light = Светлая
-et-page-dark = Тёмная (инверсия)
+et-page-auto =
+    .title = Авто
+    .aria-label = Авто
+et-page-light =
+    .title = Светлая
+    .aria-label = Светлая
+et-page-dark =
+    .title = Тёмная (инверсия)
+    .aria-label = Тёмная (инверсия)
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this

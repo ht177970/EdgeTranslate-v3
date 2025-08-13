@@ -1,3 +1,26 @@
+## EdgeTranslate custom
+
+et-theme-section = 테마
+et-theme-auto =
+    .title = 자동
+    .aria-label = 자동
+et-theme-light =
+    .title = 라이트
+    .aria-label = 라이트
+et-theme-dark =
+    .title = 다크
+    .aria-label = 다크
+et-page-section = 페이지
+et-page-auto =
+    .title = 자동
+    .aria-label = 자동
+et-page-light =
+    .title = 라이트
+    .aria-label = 라이트
+et-page-dark =
+    .title = 다크(반전)
+    .aria-label = 다크(반전)
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.

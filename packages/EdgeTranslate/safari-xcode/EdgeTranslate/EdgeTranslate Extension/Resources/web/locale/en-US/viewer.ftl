@@ -1,4 +1,27 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
+## EdgeTranslate custom
+
+et-theme-section = Theme
+et-theme-auto =
+    .title = Auto
+    .aria-label = Auto
+et-theme-light =
+    .title = Light
+    .aria-label = Light
+et-theme-dark =
+    .title = Dark
+    .aria-label = Dark
+et-page-section = Page
+et-page-auto =
+    .title = Auto
+    .aria-label = Auto
+et-page-light =
+    .title = Light
+    .aria-label = Light
+et-page-dark =
+    .title = Dark (invert)
+    .aria-label = Dark (invert)
+
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
