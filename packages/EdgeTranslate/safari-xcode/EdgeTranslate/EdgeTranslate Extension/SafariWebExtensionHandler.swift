@@ -40,31 +40,6 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
         let action = (payload["action"] as? String) ?? ""
         switch action {
-        case "tts":
-            let text = (payload["text"] as? String) ?? ""
-            let utter = AVSpeechUtterance(string: text)
-            // 시스템 기본 보이스/속도 그대로 사용 (심플)
-
-            SafariWebExtensionHandler.synthesizer.speak(utter)
-
-            let response = NSExtensionItem()
-            if #available(iOS 15.0, macOS 11.0, *) {
-                response.userInfo = [ SFExtensionMessageKey: [ "ok": true ] ]
-            } else {
-                response.userInfo = [ "message": [ "ok": true ] ]
-            }
-            context.completeRequest(returningItems: [ response ], completionHandler: nil)
-
-        case "tts_stop":
-            SafariWebExtensionHandler.synthesizer.stopSpeaking(at: .immediate)
-            let response = NSExtensionItem()
-            if #available(iOS 15.0, macOS 11.0, *) {
-                response.userInfo = [ SFExtensionMessageKey: [ "ok": true ] ]
-            } else {
-                response.userInfo = [ "message": [ "ok": true ] ]
-            }
-            context.completeRequest(returningItems: [ response ], completionHandler: nil)
-
         default:
             let response = NSExtensionItem()
             if #available(iOS 15.0, macOS 11.0, *) {

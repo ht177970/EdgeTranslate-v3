@@ -83,7 +83,12 @@ function normalizeBCP47(lang) {
 function isSafariUA() {
     if (typeof navigator === "undefined" || !navigator.userAgent) return false;
     const ua = navigator.userAgent;
-    return /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+    return (
+        /Safari\//.test(ua) &&
+        !/Chrome\//.test(ua) &&
+        !/Chromium\//.test(ua) &&
+        !/Edg\//.test(ua)
+    );
 }
 
 function scoreVoiceFor(langBCP47, voice) {
@@ -221,48 +226,6 @@ export default function ResultPanel() {
         const { pronouncing, text, language, speed, timestamp } = detail;
 
         try {
-            // Safari 네이티브 브리지 우선 시도 (AVSpeechSynthesizer)
-            if (
-                isSafariUA() &&
-                (chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage)
-            ) {
-                const appId = "com.meapri.EdgeTranslate";
-                const payload = { action: "tts", text };
-                await new Promise((resolve) => {
-                    try {
-                        const fn =
-                            chrome?.runtime?.sendNativeMessage ||
-                            browser?.runtime?.sendNativeMessage;
-                        const maybePromise = fn.call(
-                            chrome?.runtime || browser?.runtime,
-                            appId,
-                            payload,
-                            // callback (Chrome-style); Safari는 무시 가능
-                            () => resolve()
-                        );
-                        // Promise 기반(browser.*) 대응
-                        if (maybePromise && typeof maybePromise.then === "function") {
-                            maybePromise.then(() => resolve()).catch(() => resolve());
-                        }
-                    } catch {
-                        resolve();
-                    }
-                });
-
-                // 네이티브 처리 완료로 간주하고 완료 신호 전송
-                channel
-                    .request("tts_finished", { pronouncing, text, language, timestamp })
-                    .catch(() =>
-                        channel.emit("pronouncing_finished", {
-                            pronouncing,
-                            text,
-                            language,
-                            timestamp,
-                        })
-                    );
-                return;
-            }
-
             // 우선 Web Speech API 사용 시도
             if (typeof speechSynthesis !== "undefined") {
                 return new Promise((resolve, reject) => {
@@ -384,28 +347,6 @@ export default function ResultPanel() {
 
     const stopTTS = useCallback(() => {
         try {
-            // Safari 네이티브 브리지 중지 전달
-            if (
-                isSafariUA() &&
-                (chrome?.runtime?.sendNativeMessage || browser?.runtime?.sendNativeMessage)
-            ) {
-                const appId = "com.meapri.EdgeTranslate";
-                const payload = { action: "tts_stop" };
-                try {
-                    const fn =
-                        chrome?.runtime?.sendNativeMessage ||
-                        browser?.runtime?.sendNativeMessage;
-                    const maybePromise = fn.call(
-                        chrome?.runtime || browser?.runtime,
-                        appId,
-                        payload,
-                        () => {}
-                    );
-                    if (maybePromise && typeof maybePromise.then === "function") {
-                        // no-op
-                    }
-                } catch {}
-            }
             if (typeof speechSynthesis !== "undefined") {
                 speechSynthesis.cancel();
             }
