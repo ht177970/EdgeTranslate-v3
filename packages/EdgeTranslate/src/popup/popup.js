@@ -7,7 +7,6 @@ import { DEFAULT_SETTINGS, getOrSetDefaultSettings } from "common/scripts/settin
  * Communication channel.
  */
 const channel = new Channel();
-const IS_CHROME = BROWSER_ENV === "chrome";
 
 // 获取下拉列表元素
 let sourceLanguage = document.getElementById("sl");
