@@ -87,9 +87,14 @@ function scoreVoiceFor(langBCP47, voice) {
         score += 5;
     if (voice.lang && voice.lang.toLowerCase() === langBCP47.toLowerCase()) score += 10;
     const name = (voice.name || "").toLowerCase();
+    const ua = typeof navigator !== "undefined" ? (navigator.userAgent || "").toLowerCase() : "";
+    const isWindows = /windows/.test(ua);
     // Prefer high-quality engines when available
     if (name.includes("google")) score += 8;
     if (name.includes("apple")) score += 6;
+    if (name.includes("microsoft")) score += isWindows ? 10 : 8;
+    if (name.includes("neural") || name.includes("natural")) score += 3;
+    if (voice.default) score += 2;
     // Korean-specific preferred voice names
     if (langBCP47.startsWith("ko")) {
         if (name.includes("korean")) score += 4;
@@ -188,13 +193,13 @@ export default function ResultPanel() {
                             if (voice) utter.voice = voice;
                             // 한국어는 너무 빠르게 들리는 경향 보정
                             const isKorean = (utter.lang || "").toLowerCase().startsWith("ko");
-                            utter.rate = isKorean
-                                ? speed === "fast"
-                                    ? 0.9
-                                    : 0.7
-                                : speed === "fast"
-                                ? 1.0
-                                : 0.8;
+                            // Edge(Chromium) 등 일부 브라우저에서 기본 rate가 다르게 체감되는 문제 보정
+                            const ua = (navigator.userAgent || "").toLowerCase();
+                            const isEdgeLike = /edg\//.test(ua) && !/chrome\//.test(ua);
+                            const baseFast = isKorean ? 0.9 : 1.0;
+                            const baseSlow = isKorean ? 0.7 : 0.85;
+                            const adjust = isEdgeLike ? -0.05 : 0;
+                            utter.rate = (speed === "fast" ? baseFast : baseSlow) + adjust;
                             // 약간의 톤 보정
                             utter.pitch = 1.0;
                         } catch {}
