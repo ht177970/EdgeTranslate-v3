@@ -1,5 +1,7 @@
-/* EdgeTranslate PDF 뷰어 커스텀 테마
-   - 번역 패널 UI와 톤을 맞춘 미니멀/세련된 다크-라이트 혼합
+/* EdgeTranslate PDF 뷰어 커스텀 오버레이 스타일
+   유지보수 전략:
+   - pdf.js 기본 CSS(viewer.css)는 가능한 수정하지 않고, 본 파일에서 오버라이드합니다.
+   - PDF.js 업그레이드 시 viewer.css 교체만으로 대다수 변경을 흡수할 수 있게 유지합니다.
 */
 
 :root {

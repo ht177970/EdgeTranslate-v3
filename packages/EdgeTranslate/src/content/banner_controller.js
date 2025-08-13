@@ -245,17 +245,18 @@ class BannerController {
         this._mo = new MutationObserver((mutations) => {
             for (const m of mutations) {
                 if (m.type === "childList") {
-                    m.addedNodes && m.addedNodes.forEach((n) => {
-                        if (n.nodeType === Node.TEXT_NODE) {
-                            if (isMeaningful(n)) enqueue(n);
-                        } else if (n.nodeType === Node.ELEMENT_NODE) {
-                            const walker = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
-                            let t;
-                            while ((t = walker.nextNode())) {
-                                if (isMeaningful(t)) enqueue(t);
+                    m.addedNodes &&
+                        m.addedNodes.forEach((n) => {
+                            if (n.nodeType === Node.TEXT_NODE) {
+                                if (isMeaningful(n)) enqueue(n);
+                            } else if (n.nodeType === Node.ELEMENT_NODE) {
+                                const walker = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+                                let t;
+                                while ((t = walker.nextNode())) {
+                                    if (isMeaningful(t)) enqueue(t);
+                                }
                             }
-                        }
-                    });
+                        });
                 } else if (m.type === "characterData") {
                     const tn = m.target;
                     if (isMeaningful(tn)) enqueue(tn);

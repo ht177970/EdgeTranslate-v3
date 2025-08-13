@@ -92,11 +92,7 @@ class TranslatorManager {
                 hash ^= input.charCodeAt(i);
                 hash =
                     (hash +
-                        ((hash << 1) +
-                            (hash << 4) +
-                            (hash << 7) +
-                            (hash << 8) +
-                            (hash << 24))) >>>
+                        ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>>
                     0;
             }
             return hash.toString(16).padStart(8, "0");
@@ -757,27 +753,33 @@ function executeGoogleScript(channel) {
                                 translator: "google",
                             });
                             setTimeout(() => {
-                                try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
+                                try {
+                                    channel.emitToTabs(tabId, "start_dom_page_translate", {});
+                                } catch {}
                             }, 800);
                         })
                         .catch(() => {
                             try {
-                                chrome.tabs.executeScript(
-                                    tabId,
-                                    { file: "google/init.js" },
-                                    () => {
-                                        channel.emitToTabs(tabId, "start_page_translate", {
-                                            translator: "google",
-                                        });
-                                        setTimeout(() => {
-                                            try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
-                                        }, 800);
-                                    }
-                                );
+                                chrome.tabs.executeScript(tabId, { file: "google/init.js" }, () => {
+                                    channel.emitToTabs(tabId, "start_page_translate", {
+                                        translator: "google",
+                                    });
+                                    setTimeout(() => {
+                                        try {
+                                            channel.emitToTabs(
+                                                tabId,
+                                                "start_dom_page_translate",
+                                                {}
+                                            );
+                                        } catch {}
+                                    }, 800);
+                                });
                             } catch (error) {
                                 channel.emitToTabs(tabId, "inject_page_translate", {});
                                 setTimeout(() => {
-                                    try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
+                                    try {
+                                        channel.emitToTabs(tabId, "start_dom_page_translate", {});
+                                    } catch {}
                                 }, 800);
                             }
                         });
@@ -798,7 +800,9 @@ function executeGoogleScript(channel) {
                             translator: "google",
                         });
                         setTimeout(() => {
-                            try { channel.emitToTabs(tabId, "start_dom_page_translate", {}); } catch {}
+                            try {
+                                channel.emitToTabs(tabId, "start_dom_page_translate", {});
+                            } catch {}
                         }, 800);
                     })
                     .catch((error) => {
