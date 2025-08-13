@@ -259,10 +259,7 @@
         "message": "Googleでこのページを翻訳",
         "description": "Google翻訳APIで現在のページを翻訳します。"
     },
-    "UseGoogleAnalytics": {
-        "message": "拡張機能の改善に役立つ統計を提供する",
-        "description": "Google Analyticsツールを使用して、Edge Translateを改善します。"
-    },
+    
     "PrivacyPolicy": {
         "message": "プライバシーポリシー",
         "description": "プライバシーポリシー"

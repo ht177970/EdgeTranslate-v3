@@ -41,8 +41,8 @@
     "AddDomainBlacklist": { "message": "현재 도메인 차단 목록에 추가", "description": "도메인 차단 추가" },
     "RemoveDomainBlacklist": { "message": "현재 도메인 차단 목록에서 제거", "description": "도메인 차단 제거" },
 
-    "DataCollectionNotice": { "message": "Edge Translate를 사용해 주셔서 감사합니다.\n사용성 개선을 위해 일부 통계가 필요합니다.\n자세한 내용은 옵션을 확인하세요.", "description": "데이터 수집 알림" },
-    "PrivacyPolicyLink": { "message": "https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/ko/PrivacyPolicy.md", "description": "개인정보 처리방침 링크" },
+    "DataCollectionNotice": { "message": "Edge Translate를 사용해 주셔서 감사합니다. 옵션에서 설정을 확인하세요.", "description": "환영 알림(통계 없음)" },
+    "PrivacyPolicyLink": { "message": "https://github.com/Meapri/EdgeTranslate-v3", "description": "프로젝트 링크" },
     "ExtensionInstalled": { "message": "Edge Translate가 설치되었습니다! 위키를 확인해 보세요!", "description": "설치 알림" },
     "WikiLink": { "message": "https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/ko/Introduction.md", "description": "위키 링크" },
     "ExtensionUpdated": { "message": "Edge Translate가 업데이트되었습니다! 새로운 내용을 확인해 보세요!", "description": "업데이트 알림" },
@@ -73,7 +73,7 @@
     "CancelPageTranslate": { "message": "페이지 번역 취소", "description": "페이지 번역 취소" },
     "TogglePageTranslateBanner": { "message": "페이지 번역 배너 토글", "description": "배너 표시/숨김" },
     "TranslatePageGoogle": { "message": "Google로 이 페이지 번역", "description": "Google 페이지 번역" },
-    "UseGoogleAnalytics": { "message": "확장 프로그램 개선을 위한 통계 제공", "description": "Google Analytics 사용" },
+    
 
     "PrivacyPolicy": { "message": "개인정보 처리방침", "description": "개인정보 처리방침" },
     "Settings": { "message": "설정", "description": "설정" },
