@@ -19,6 +19,10 @@ View this page in other languages:
 - Blacklist: Add the current page/domain to disable selection/double-click translation on that page.
 - Text-to-Speech (TTS): Prefers higher-quality voices for more natural reading.
 
+### Downloads
+- [Chrome Web Store](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
+- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+
 ### Browser Support and Limits
 - Chrome: Selection translation, PDF viewer, full-page translation
 - Firefox: Selection translation, PDF viewer (some limitations due to browser issues), no full-page translation

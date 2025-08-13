@@ -20,6 +20,10 @@ Edge Translate의 포크 프로젝트로, Manifest V3에 맞춰 전면 리팩터
 - 블랙리스트: 현재 페이지/도메인을 차단 목록에 추가해 해당 페이지에서 선택/더블클릭 번역을 비활성화할 수 있습니다.
 - 음성 합성(TTS): 더 고품질의 음성을 우선 선택해 자연스러운 낭독을 제공합니다.
 
+### 다운로드
+- [Chrome 웹스토어](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
+- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+
 ### 브라우저 지원 및 제한
 - Chrome: 선택 번역, PDF 뷰어, 전체 페이지 번역
 - Firefox: 선택 번역, PDF 뷰어 지원(브라우저 이슈로 일부 기능이 제한될 수 있음), 전체 페이지 번역 미제공

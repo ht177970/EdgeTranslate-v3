@@ -20,6 +20,10 @@
 - 黑名单：将当前页面/域名加入黑名单，在该页面停用选择/双击翻译。
 - 文本转语音（TTS）：优先选择更高质量的语音，朗读更自然。
 
+### 下载
+- [Chrome 应用商店](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
+- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+
 ### 浏览器支持与限制
 - Chrome：选择翻译、PDF 阅读器、整页翻译
 - Firefox：选择翻译、PDF 阅读器（受浏览器问题限制部分功能）、不提供整页翻译

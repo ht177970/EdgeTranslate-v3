@@ -20,6 +20,10 @@
 - ブラックリスト: 現在のページ/ドメインをブロックリストに追加し、そのページでの選択/ダブルクリック翻訳を無効化。
 - 音声読み上げ（TTS）: より高品質な音声を優先して自然な読み上げを提供。
 
+### ダウンロード
+- [Chrome ウェブストア](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
+- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+
 ### 対応ブラウザーと制限
 - Chrome: 選択翻訳、PDF ビューア、ページ全体の翻訳
 - Firefox: 選択翻訳、PDF ビューア（ブラウザーの問題により一部制限あり）、ページ全体の翻訳は非対応

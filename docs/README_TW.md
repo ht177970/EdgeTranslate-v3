@@ -20,6 +20,10 @@
 - 黑名單：將目前頁面/網域加入封鎖清單，在該頁停用選取/雙擊翻譯。
 - 文字轉語音（TTS）：優先選用更高品質的語音，朗讀更自然。
 
+### 下載
+- [Chrome 應用商店](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
+- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+
 ### 瀏覽器支援與限制
 - Chrome：選取翻譯、PDF 檢視器、整頁翻譯
 - Firefox：選取翻譯、PDF 檢視器（受瀏覽器問題限制部分功能）、不提供整頁翻譯
