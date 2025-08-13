@@ -80,6 +80,12 @@ function normalizeBCP47(lang) {
     return lang;
 }
 
+function isSafariUA() {
+    if (typeof navigator === "undefined" || !navigator.userAgent) return false;
+    const ua = navigator.userAgent;
+    return /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+}
+
 function scoreVoiceFor(langBCP47, voice) {
     let score = 0;
     if (!voice) return -1;
@@ -89,6 +95,8 @@ function scoreVoiceFor(langBCP47, voice) {
     const name = (voice.name || "").toLowerCase();
     const ua = typeof navigator !== "undefined" ? (navigator.userAgent || "").toLowerCase() : "";
     const isWindows = /windows/.test(ua);
+    // Prefer local voices to avoid online/streamed voices when possible
+    if (voice.localService) score += 4;
     // Prefer high-quality engines when available
     if (name.includes("google")) score += 8;
     if (name.includes("apple")) score += 6;
@@ -100,6 +108,8 @@ function scoreVoiceFor(langBCP47, voice) {
         if (name.includes("korean")) score += 4;
         if (name.includes("yuna") || name.includes("yuri") || name.includes("nara")) score += 3;
         if (name.includes("한국")) score += 4;
+        // Safari에서 Apple 한국어(Yuna) 우선 강화
+        if (isSafariUA() && name.includes("yuna")) score += 8;
     }
     return score;
 }
@@ -107,9 +117,25 @@ function scoreVoiceFor(langBCP47, voice) {
 async function pickBestVoice(lang) {
     const normalized = normalizeBCP47(lang || "");
     const cacheKey = normalized || "default";
-    if (lastVoiceByLang.has(cacheKey)) return { lang: normalized, voice: lastVoiceByLang.get(cacheKey) };
+    if (lastVoiceByLang.has(cacheKey)) {
+        return {
+            lang: normalized,
+            voice: lastVoiceByLang.get(cacheKey),
+        };
+    }
     const list = cachedVoices || (await loadVoices());
     if (!list || !list.length) return { lang: normalized, voice: null };
+    // Safari + 한국어: 이름에 'Yuna' 포함된 로컬 Apple 보이스를 우선 선택
+    if (isSafariUA() && normalized.startsWith("ko")) {
+        const yuna = list.find((v) => {
+            const n = (v.name || "").toLowerCase();
+            return /yuna/.test(n) && v.localService !== false;
+        });
+        if (yuna) {
+            lastVoiceByLang.set(cacheKey, yuna);
+            return { lang: normalized, voice: yuna };
+        }
+    }
     let best = null;
     let bestScore = -1;
     for (const v of list) {
