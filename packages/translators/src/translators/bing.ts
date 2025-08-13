@@ -613,9 +613,10 @@ class BingTranslator {
         let retryCount = 0;
         const requestOnce = async (): Promise<any> => {
             this.count++;
-            const response = (await axios(
-                constructParams.call(this, ...constructParamsArgs)
-            )) as AxiosResponse<any>;
+            const response = (await axios({
+                timeout: axios.defaults.timeout || 8000,
+                ...constructParams.call(this, ...constructParamsArgs),
+            })) as AxiosResponse<any>;
 
             /**
              * Status codes 401 and 429 mean that Bing thinks we are robots. We have to wait for it to calm down.

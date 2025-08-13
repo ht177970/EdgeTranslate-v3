@@ -205,7 +205,8 @@ const createServiceWorkerAxios = (): AxiosInstance => {
             put: { "Content-Type": "application/json" },
             patch: { "Content-Type": "application/json" },
         },
-        timeout: 0,
+        // Avoid long hangs on flaky networks
+        timeout: 8000,
         responseType: "json",
         baseURL: "",
         validateStatus: (status: number) => status >= 200 && status < 300,

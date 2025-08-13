@@ -518,6 +518,7 @@ class GoogleTranslator {
              */
             const response = await axios.get(this.generateDetectURL(text), {
                 validateStatus: (status) => status < 500,
+                timeout: axios.defaults.timeout || 8000,
             });
 
             if (response.status === 200) {
@@ -566,6 +567,7 @@ class GoogleTranslator {
              */
             const response = await axios.get(this.generateTranslateURL(text, from, to), {
                 validateStatus: (status) => status < 500,
+                timeout: axios.defaults.timeout || 8000,
             });
 
             if (response.status === 200) {
