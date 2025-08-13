@@ -19,6 +19,12 @@ class BannerController {
         this.lastDistance = null;
         this._moveRaf = null;
 
+        // DOM fallback observer state
+        this._mo = null;
+        this._translatedSet = new WeakSet();
+        this._scheduleBatch = null;
+        this._pendingNodes = new Set();
+
         this.addListeners();
     }
 
@@ -197,6 +203,72 @@ class BannerController {
                     break;
             }
         });
+    }
+
+    /**
+     * Start DOM fallback translation observer with aggressive filtering.
+     */
+    startDomFallback() {
+        if (this._mo) return;
+        const isMeaningful = (node) => {
+            if (!node || node.nodeType !== Node.TEXT_NODE) return false;
+            const text = String(node.nodeValue || "").trim();
+            if (text.length < 2) return false;
+            const p = node.parentElement;
+            if (!p) return false;
+            const tn = p.tagName;
+            if (/^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA|INPUT|SELECT|OPTION)$/i.test(tn)) return false;
+            if (p.hasAttribute("data-et-translated")) return false;
+            return true;
+        };
+        const enqueue = (node) => {
+            this._pendingNodes.add(node);
+            if (this._scheduleBatch) return;
+            this._scheduleBatch = requestAnimationFrame(() => {
+                this._scheduleBatch = null;
+                const batch = Array.from(this._pendingNodes);
+                this._pendingNodes.clear();
+                this.translateBatchNodes(batch);
+            });
+        };
+        this._mo = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type === "childList") {
+                    m.addedNodes && m.addedNodes.forEach((n) => {
+                        if (n.nodeType === Node.TEXT_NODE) {
+                            if (isMeaningful(n)) enqueue(n);
+                        } else if (n.nodeType === Node.ELEMENT_NODE) {
+                            const walker = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+                            let t;
+                            while ((t = walker.nextNode())) {
+                                if (isMeaningful(t)) enqueue(t);
+                            }
+                        }
+                    });
+                } else if (m.type === "characterData") {
+                    const tn = m.target;
+                    if (isMeaningful(tn)) enqueue(tn);
+                }
+            }
+        });
+        this._mo.observe(document.body, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+        });
+    }
+
+    /**
+     * Translate a batch of text nodes, marking parents to avoid duplicates.
+     */
+    translateBatchNodes(nodes) {
+        const parents = new Set();
+        for (const n of nodes) {
+            const p = n.parentElement;
+            if (p && !this._translatedSet.has(p)) parents.add(p);
+        }
+        if (!parents.size) return;
+        parents.forEach((p) => p.setAttribute("data-et-translated", "1"));
     }
 }
 
