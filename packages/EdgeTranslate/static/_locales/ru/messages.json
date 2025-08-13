@@ -252,8 +252,8 @@
         "description": "Отменить перевод страницы."
     },
     "TogglePageTranslateBanner": {
-        "message": "Toggle page translate banner",
-        "description": "Show/Hide page translator's banner."
+        "message": "Показать/скрыть баннер перевода страницы",
+        "description": "Показать или скрыть баннер переводчика страницы"
     },
     "TranslatePageGoogle": {
         "message": "Перевести страницу с помощью Google",
@@ -412,8 +412,8 @@
         "description": "Ссылки"
     },
     "WIKI": {
-        "message": "Wiki",
-        "description": "Заголовок Wiki"
+        "message": "Вики",
+        "description": "Заголовок Вики"
     },
     "BugReport": {
         "message": "Сообщить об ошибке",

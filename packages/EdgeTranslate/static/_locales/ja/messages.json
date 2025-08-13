@@ -252,8 +252,8 @@
         "description": "ページ翻訳をキャンセル"
     },
     "TogglePageTranslateBanner": {
-        "message": "Toggle page translate banner",
-        "description": "Show/Hide page translator's banner."
+        "message": "ページ翻訳バナーを切り替え",
+        "description": "ページ翻訳バナーの表示/非表示"
     },
     "TranslatePageGoogle": {
         "message": "Googleでこのページを翻訳",
@@ -364,8 +364,8 @@
         "description": "複数の翻訳ソースを混在させます。"
     },
     "NOTICE": {
-        "message": "Notice from Edge Translate",
-        "description": "Notice from Edge Translate"
+        "message": "Edge Translate からのお知らせ",
+        "description": "お知らせ"
     },
     "NoticeTitle": {
         "message": "Why is this page displayed?",
@@ -396,16 +396,16 @@
         "description": "the fourth reason of the notice message"
     },
     "EnablePermission": {
-        "message": "How to enable it?",
-        "description": "How to enable it"
+        "message": "有効化の方法",
+        "description": "有効化の方法"
     },
     "OpenThisPage": {
-        "message": "Open this page",
-        "description": "Open this page"
+        "message": "このページを開く",
+        "description": "このページを開く"
     },
     "ReloadPage": {
-        "message": "Reload the file page",
-        "description": "Reload the file page"
+        "message": "ファイルページを再読み込み",
+        "description": "ファイルページを再読み込み"
     },
     "NoticeLinks": {
         "message": "Links",

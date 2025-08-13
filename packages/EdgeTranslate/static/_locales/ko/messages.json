@@ -73,6 +73,7 @@
     "CancelPageTranslate": { "message": "페이지 번역 취소", "description": "페이지 번역 취소" },
     "TogglePageTranslateBanner": { "message": "페이지 번역 배너 토글", "description": "배너 표시/숨김" },
     "TranslatePageGoogle": { "message": "Google로 이 페이지 번역", "description": "Google 페이지 번역" },
+    "UseGoogleAnalytics": { "message": "확장 프로그램 개선을 위한 통계 제공", "description": "Google Analytics 사용" },
 
     "PrivacyPolicy": { "message": "개인정보 처리방침", "description": "개인정보 처리방침" },
     "Settings": { "message": "설정", "description": "설정" },
@@ -114,6 +115,8 @@
     "OpenThisPage": { "message": "이 페이지 열기", "description": "이 페이지 열기" },
     "ReloadPage": { "message": "파일 페이지 새로고침", "description": "파일 페이지 새로고침" },
     "NoticeLinks": { "message": "링크", "description": "링크" },
+    "WIKI": { "message": "위키", "description": "위키 제목" },
+    "BugReport": { "message": "버그 신고", "description": "버그 신고" },
 
     "NETERR": { "message": "네트워크 오류입니다. 연결을 확인해 주세요.", "description": "네트워크 오류" },
     "APIERR": { "message": "요청 파라미터 오류입니다. 다른 번역기를 사용하거나 잠시 후 다시 시도해 주세요. 지속되면 개발자에게 문의해 주세요.", "description": "API 오류" },
