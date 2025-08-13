@@ -35,7 +35,6 @@
 html, body {
   background: var(--et-bg) !important;
   color: var(--et-text) !important;
-  font-family: system-ui, sans-serif !important;
 }
 
 /* Page inversion (PDF content only, toolbar 제외) */
