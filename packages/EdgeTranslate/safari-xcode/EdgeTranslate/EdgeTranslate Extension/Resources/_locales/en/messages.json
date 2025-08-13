@@ -148,12 +148,8 @@
         "description": "Remove the domain of currently browsing site from blacklist."
     },
     "DataCollectionNotice": {
-        "message": "Thank you for using Edge Translate! \nWe need some statistics to improve user experience. \nClick to see the option.",
-        "description": "Notification of collecting statistic information."
-    },
-    "PrivacyPolicyLink": {
-        "message": "https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/PrivacyPolicy.md",
-        "description": "Privacy policy link."
+        "message": "Thank you for using Edge Translate! Click to open options.",
+        "description": "Welcome notice (no analytics)."
     },
     "ExtensionInstalled": {
         "message": "Edge Translate installed successfully! Click to read the wiki!",
@@ -259,14 +255,7 @@
         "message": "Translate this page with Google",
         "description": "Translate current page with Google translate api."
     },
-    "UseGoogleAnalytics": {
-        "message": "Provide statistics to help improve the extension",
-        "description": "Use Google Analytics tool to help us improve Edge Translate."
-    },
-    "PrivacyPolicy": {
-        "message": "Privacy Policy",
-        "description": "Privacy policy."
-    },
+    
     "Settings": {
         "message": "Settings",
         "description": "Settings"

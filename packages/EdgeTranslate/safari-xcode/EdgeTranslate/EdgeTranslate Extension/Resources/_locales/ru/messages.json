@@ -259,10 +259,7 @@
         "message": "Перевести страницу с помощью Google",
         "description": "Перевод текущей страницы с помощью Google Translate API."
     },
-    "UseGoogleAnalytics": {
-        "message": "Помочь улучшить расширение",
-        "description": "Используется инструмент Google Analytics, чтобы помочь нам улучшить Edge Translate."
-    },
+    
     "PrivacyPolicy": {
         "message": "Политика конфиденциальности",
         "description": "Политика конфиденциальности."
