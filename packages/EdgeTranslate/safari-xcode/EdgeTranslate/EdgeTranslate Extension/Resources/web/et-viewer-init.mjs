@@ -59,18 +59,7 @@ try {
     // Apply immediately so UI paints correctly before viewer init
     document.documentElement.style.colorScheme = saved;
     document.documentElement.setAttribute('data-theme', saved);
-    try {
-      const setThemeMeta = (mode) => {
-        let tag = document.querySelector('meta[name="theme-color"]');
-        if (!tag) {
-          tag = document.createElement('meta');
-          tag.setAttribute('name', 'theme-color');
-          document.head.appendChild(tag);
-        }
-        tag.setAttribute('content', mode === 'dark' ? '#101317' : '#f6f8fb');
-      };
-      setThemeMeta(saved);
-    } catch {}
+    // Do not set meta theme-color: let Chrome follow its own light/dark UI
   } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
@@ -136,15 +125,7 @@ try {
       // Update document styles
       document.documentElement.style.colorScheme = mode;
       document.documentElement.setAttribute('data-theme', mode);
-      try {
-        let tag = document.querySelector('meta[name="theme-color"]');
-        if (!tag) {
-          tag = document.createElement('meta');
-          tag.setAttribute('name', 'theme-color');
-          document.head.appendChild(tag);
-        }
-        tag.setAttribute('content', mode === 'dark' ? '#101317' : '#f6f8fb');
-      } catch {}
+      // Do not set meta theme-color here either
       // Persist in both our storage and PDF.js preferences
       try {
         localStorage.setItem('et_viewer_theme', mode);
