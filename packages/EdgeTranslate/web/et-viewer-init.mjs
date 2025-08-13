@@ -8,18 +8,26 @@ if (!globalThis.pdfjsLib) {
   globalThis.pdfjsLib = PDFJS;
 }
 
-// Soften noisy runtime errors coming from icon downloads in some environments
+// Soften noisy runtime errors (benign cases: asset download hiccups, user-cancelled print)
 try {
   const isHarmlessIconError = (val) => {
     const msg = String(val && (val.message || val));
     return msg.includes('Unable to download all specified images');
   };
+  const isBenignCancellation = (val) => {
+    if (!val) return false;
+    if (val.name === 'RenderingCancelledException') return true;
+    const msg = String(val.message || val);
+    return msg.includes('Print cancelled');
+  };
   window.addEventListener('unhandledrejection', (event) => {
-    if (isHarmlessIconError(event.reason)) event.preventDefault();
+    if (isHarmlessIconError(event.reason) || isBenignCancellation(event.reason)) {
+      event.preventDefault();
+    }
   });
   const origErr = console.error;
   console.error = function (...args) {
-    if (args.some(isHarmlessIconError)) return;
+    if (args.some(isHarmlessIconError) || args.some(isBenignCancellation)) return;
     return origErr.apply(this, args);
   };
 } catch {}
