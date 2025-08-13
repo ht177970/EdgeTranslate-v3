@@ -40,7 +40,9 @@ class TranslatorManager {
             this.DEFAULT_TRANSLATOR = configs.DefaultTranslator;
             // Non-blocking warm-up to reduce first-translate latency
             setTimeout(() => {
-                try { this.warmUpTranslators(); } catch {}
+                try {
+                    this.warmUpTranslators();
+                } catch {}
             }, 0);
         });
 
@@ -88,8 +90,14 @@ class TranslatorManager {
             let hash = 0x811c9dc5;
             for (let i = 0; i < input.length; i++) {
                 hash ^= input.charCodeAt(i);
-                hash = (hash +
-                    ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0;
+                hash =
+                    (hash +
+                        ((hash << 1) +
+                            (hash << 4) +
+                            (hash << 7) +
+                            (hash << 8) +
+                            (hash << 24))) >>>
+                    0;
             }
             return hash.toString(16).padStart(8, "0");
         } catch {
@@ -245,34 +253,44 @@ class TranslatorManager {
             const candidates = new Set();
             if (this.DEFAULT_TRANSLATOR) candidates.add(this.DEFAULT_TRANSLATOR);
             if (this.HYBRID_TRANSLATOR && this.HYBRID_TRANSLATOR.REAL_TRANSLATORS) {
-                Object.keys(this.HYBRID_TRANSLATOR.REAL_TRANSLATORS).forEach((k) => candidates.add(k));
+                Object.keys(this.HYBRID_TRANSLATOR.REAL_TRANSLATORS).forEach((k) =>
+                    candidates.add(k)
+                );
             }
             const tinyText = "a";
-            const sl = "auto";
-            const tl = (this.LANGUAGE_SETTING && this.LANGUAGE_SETTING.tl) || "en";
             const tasks = [];
             for (const id of candidates) {
                 const t = this.TRANSLATORS[id];
                 if (!t) continue;
                 // Prefer explicit token update methods when available
                 if (typeof t.updateTokens === "function") {
-                    tasks.push(Promise.resolve().then(() => t.updateTokens()).catch(() => {}));
+                    tasks.push(
+                        Promise.resolve()
+                            .then(() => t.updateTokens())
+                            .catch(() => {})
+                    );
                     continue;
                 }
                 if (typeof t.updateTKK === "function") {
-                    tasks.push(Promise.resolve().then(() => t.updateTKK()).catch(() => {}));
+                    tasks.push(
+                        Promise.resolve()
+                            .then(() => t.updateTKK())
+                            .catch(() => {})
+                    );
                     continue;
                 }
                 // Fallback to a cheap detect call
                 if (typeof t.detect === "function") {
-                    tasks.push(Promise.resolve().then(() => t.detect(tinyText)).catch(() => {}));
+                    tasks.push(
+                        Promise.resolve()
+                            .then(() => t.detect(tinyText))
+                            .catch(() => {})
+                    );
                 }
             }
             // Run warm-ups with a soft timeout to avoid hanging
-            const softTimeout = (p, ms) => Promise.race([
-                p,
-                new Promise((resolve) => setTimeout(resolve, ms)),
-            ]);
+            const softTimeout = (p, ms) =>
+                Promise.race([p, new Promise((resolve) => setTimeout(resolve, ms))]);
             await softTimeout(Promise.allSettled(tasks), 2500);
         } catch {}
     }
@@ -799,7 +817,7 @@ function executeGoogleScript(channel) {
                     });
                 } catch (error) {
                     // delegate to content script
-                    channel.emitToTabs(tabId, "inject_page_translate", {});
+                    channel.emitToTabs(tabs[0].id, "inject_page_translate", {});
                 }
             }
         }
