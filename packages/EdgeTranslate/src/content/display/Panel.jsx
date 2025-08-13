@@ -89,9 +89,6 @@ function scoreVoiceFor(langBCP47, voice) {
         score += 5;
     if (voice.lang && voice.lang.toLowerCase() === langBCP47.toLowerCase()) score += 10;
     const name = (voice.name || "").toLowerCase();
-    const uri = (voice.voiceURI || "").toLowerCase();
-    const ua = typeof navigator !== "undefined" ? (navigator.userAgent || "").toLowerCase() : "";
-    const isWindows = /windows/.test(ua);
     // Prefer local voices to avoid online/streamed voices when possible
     if (voice.localService) score += 4;
     // Prefer high-quality engines when available
