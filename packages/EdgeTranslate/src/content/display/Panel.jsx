@@ -36,6 +36,7 @@ const transitionDuration = 500;
 let cachedVoices = null;
 let voicesLoaded = false;
 let lastVoiceByLang = new Map();
+let scoreCache = new Map(); // key: `${normalized}|${voice.name}|${voice.lang}|${voice.voiceURI}` -> score
 
 async function loadVoices() {
     if (typeof speechSynthesis === "undefined") return [];
@@ -148,16 +149,21 @@ async function pickBestVoice(lang) {
 
     // 1) 1차 필터: 언어 코드 베이스가 일치하는 보이스 우선 (예: ko-*, en-*)
     const base = (normalized || "").split("-")[0].toLowerCase();
-    const primary = list.filter((v) =>
-        String(v.lang || "")
-            .toLowerCase()
-            .startsWith(base)
-    );
+    // Pre-filter once for language base; this reduces scoring work
+    const primary = list.filter((v) => (String(v.lang || "").toLowerCase().startsWith(base)));
     const candidates = primary.length ? primary : list;
 
     // 2) 스코어 기반 정렬 (사파리에서는 enhanced/premium 우선)
     const scored = candidates
-        .map((v) => ({ v, s: scoreVoiceFor(normalized || v.lang || "", v) }))
+        .map((v) => {
+            const k = `${normalized}|${v.name || ''}|${v.lang || ''}|${v.voiceURI || ''}`;
+            let s = scoreCache.get(k);
+            if (s == null) {
+                s = scoreVoiceFor(normalized || v.lang || "", v);
+                scoreCache.set(k, s);
+            }
+            return { v, s };
+        })
         .sort((a, b) => b.s - a.s);
 
     const best = scored.length ? scored[0].v : null;
