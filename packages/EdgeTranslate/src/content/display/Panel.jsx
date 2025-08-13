@@ -102,7 +102,20 @@ export default function ResultPanel() {
         const { pronouncing, text, language, speed, timestamp } = detail;
 
         try {
-            // 우선 Web Speech API 사용 시도
+            // 1) 크로미움: background를 통해 chrome.tts 우선 시도
+            try {
+                const normLang = normalizeBCP47(language);
+                const rate = speed === "fast" ? 1.0 : 0.8;
+                await channel.request("tts_speak", { text, lang: normLang, rate });
+                channel
+                    .request("tts_finished", { pronouncing, text, language, timestamp })
+                    .catch(() =>
+                        channel.emit("pronouncing_finished", { pronouncing, text, language, timestamp })
+                    );
+                return;
+            } catch {}
+
+            // 2) 폴백: Web Speech API 사용
             if (typeof speechSynthesis !== "undefined") {
                 return new Promise((resolve, reject) => {
                     // 진행 중인 음성 합성 중단
@@ -217,6 +230,8 @@ export default function ResultPanel() {
 
     const stopTTS = useCallback(() => {
         try {
+            // 우선 background에 chrome.tts.stop 위임 시도
+            channel.request("tts_stop", {}).catch(() => {});
             if (typeof speechSynthesis !== "undefined") {
                 speechSynthesis.cancel();
             }

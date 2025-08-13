@@ -901,6 +901,36 @@ const channel = new Channel();
  * Create translator manager and register event listeners and service providers.
  */
 const TRANSLATOR_MANAGER = new TranslatorManager(channel);
+// TTS via chrome.tts for Chromium; falls back in content if unavailable
+channel.provide("tts_speak", ({ text, lang, rate }) => {
+    return new Promise((resolve, reject) => {
+        try {
+            if (!chrome.tts || typeof chrome.tts.speak !== "function") return reject(new Error("tts api unavailable"));
+            const options = {};
+            if (lang) options.lang = lang;
+            if (typeof rate === "number") options.rate = rate;
+            chrome.tts.speak(text || "", options, () => {
+                const err = chrome.runtime.lastError;
+                if (err) return reject(err);
+                resolve();
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+});
+
+channel.provide("tts_stop", () => {
+    return new Promise((resolve, reject) => {
+        try {
+            if (!chrome.tts || typeof chrome.tts.stop !== "function") return resolve();
+            chrome.tts.stop();
+            resolve();
+        } catch (e) {
+            resolve();
+        }
+    });
+});
 
 /**
  * 监听用户点击通知事件
