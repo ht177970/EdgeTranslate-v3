@@ -125,6 +125,39 @@ try {
   } else {
     trySetupToolbar();
   }
+
+  // Close any open PDF.js doorhangers/menus when clicking the background
+  const setupGlobalMenuDismissal = () => {
+    const isMenuElement = (el) => !!(el && el.classList && (el.classList.contains('menu') || el.classList.contains('doorHanger') || el.classList.contains('doorHangerRight')));
+    const closeAllMenus = () => {
+      try {
+        const menus = document.querySelectorAll('.menu, .doorHanger, .doorHangerRight');
+        for (const el of menus) {
+          if (el.classList && !el.classList.contains('hidden')) {
+            el.classList.add('hidden');
+            const id = el.id;
+            if (id) {
+              const controller = document.querySelector(`[aria-controls="${CSS.escape(id)}"]`);
+              if (controller && controller.getAttribute('aria-expanded') === 'true') {
+                controller.setAttribute('aria-expanded', 'false');
+              }
+            }
+          }
+        }
+      } catch {}
+    };
+    const onPointerDown = (e) => {
+      let node = e.target;
+      while (node) {
+        if (isMenuElement(node)) return; // Click inside an open menu → don't auto-close
+        node = node.parentNode;
+      }
+      closeAllMenus();
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return true;
+  };
+  setupGlobalMenuDismissal();
 })();
 
 
