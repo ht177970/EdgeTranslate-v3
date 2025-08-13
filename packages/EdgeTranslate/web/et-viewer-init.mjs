@@ -34,7 +34,7 @@ try {
   window.addEventListener('drop', block);
 } catch {}
 
-  try { PDFJS.GlobalWorkerOptions.workerSrc = 'viewer.mjs'; } catch {}
+  try { PDFJS.GlobalWorkerOptions.workerSrc = '../build/build/pdf.worker.mjs'; } catch {}
 
 // Prepare URL before loading viewer.mjs, following official behavior where file param drives initial load
 (async () => {
