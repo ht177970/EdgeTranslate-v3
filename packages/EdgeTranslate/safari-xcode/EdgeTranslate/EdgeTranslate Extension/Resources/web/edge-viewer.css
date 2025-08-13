@@ -35,6 +35,23 @@ html, body {
   color: var(--et-text) !important;
 }
 
+/* Page inversion (PDF content only, toolbar 제외) */
+html[data-page-theme="dark"] .pdfViewer .page {
+  filter: invert(1) hue-rotate(180deg) saturate(0.85) contrast(0.95) brightness(0.9);
+}
+
+/* Revert inversion for common overlay assets (annotations/icons), keep natural colors */
+html[data-page-theme="dark"] .annotationLayer img,
+html[data-page-theme="dark"] .annotationLayer canvas,
+html[data-page-theme="dark"] .annotationLayer svg {
+  filter: invert(1) hue-rotate(180deg) saturate(1) contrast(1) brightness(1);
+}
+
+/* Improve text selection/readability under inversion */
+html[data-page-theme="dark"] #viewer .textLayer span::selection {
+  background: rgba(79, 140, 255, 0.35) !important;
+}
+
 #outerContainer .toolbar,
 #secondaryToolbar,
 #findbar,
@@ -197,6 +214,143 @@ html[data-theme="light"] #etThemeToggle .icon-moon { display: none; }
   gap: 6px;
 }
 
+/* Theme dropdown menu tweaks */
+#etTheme .menuContainer button.toolbarButton.labeled.toggled {
+  background: var(--menuitem-hover-bg-color) !important;
+}
+#etThemeMenu.menu {
+  min-width: 140px;
+  width: 172px;
+}
+
+/* Prevent toggle stretching and ensure dropdown doesn't affect layout */
+#etTheme { display: inline-block; position: relative; vertical-align: middle; }
+#etTheme .menu { position: absolute; right: 0; }
+
+/* Left-align theme menu like other menus; avoid centered labels */
+#etThemeMenu .menuContainer { text-align: left !important; width: auto !important; min-width: 140px !important; padding: 6px 8px !important; }
+#etThemeMenu .menuContainer button.toolbarButton:not(#etThemeLightIcon):not(#etThemeDarkIcon):not(#etThemeAutoIcon):not(#etPageLightIcon):not(#etPageDarkIcon):not(#etPageAutoIcon) { 
+  display: flex !important; 
+  justify-content: flex-start !important; 
+  align-items: center !important; 
+  width: 100% !important; 
+  box-sizing: border-box !important; 
+  min-height: var(--menu-item-height) !important; 
+  border: none !important; 
+  border-radius: 0 !important;
+}
+#etThemeMenu .menuContainer button.toolbarButton > span { 
+  flex: 1 1 auto !important; 
+  min-width: 0 !important; 
+  text-align: left !important; 
+  white-space: nowrap !important; 
+}
+
+/* icon-only buttons inside theme menu */
+#etThemeMenu .menuContainer button.toolbarButton .icon-sun,
+#etThemeMenu .menuContainer button.toolbarButton .icon-moon,
+#etThemeMenu .menuContainer button.toolbarButton .icon-auto { display: inline-flex; align-items: center; justify-content: center; }
+#etThemeMenu .menuContainer button.toolbarButton .icon-sun svg,
+#etThemeMenu .menuContainer button.toolbarButton .icon-moon svg,
+#etThemeMenu .menuContainer button.toolbarButton .icon-auto svg { width: var(--icon-size); height: var(--icon-size); }
+
+/* make icon-only buttons square and compact */
+#etThemeMenu .menuContainer #etThemeAutoIcon,
+#etThemeMenu .menuContainer #etThemeLightIcon,
+#etThemeMenu .menuContainer #etThemeDarkIcon,
+#etThemeMenu .menuContainer #etPageAutoIcon,
+#etThemeMenu .menuContainer #etPageLightIcon,
+#etThemeMenu .menuContainer #etPageDarkIcon {
+  display: inline-flex !important;
+  width: calc(var(--menu-item-height) + 4px) !important;
+  height: calc(var(--menu-item-height) + 4px) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  justify-content: center !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+#etThemeMenu .menuContainer #etThemeAutoIcon > span,
+#etThemeMenu .menuContainer #etThemeLightIcon > span,
+#etThemeMenu .menuContainer #etThemeDarkIcon > span,
+#etThemeMenu .menuContainer #etPageAutoIcon > span,
+#etThemeMenu .menuContainer #etPageLightIcon > span,
+#etThemeMenu .menuContainer #etPageDarkIcon > span {
+  flex: 0 0 auto !important;
+}
+
+/* compact visual for icon-only items */
+#etThemeMenu .menuContainer button#etThemeLightIcon,
+#etThemeMenu .menuContainer button#etThemeDarkIcon {
+  padding: 8px !important;
+}
+
+/* toggler row spacing */
+#etThemeMenu .menuContainer .toggler {
+  display: flex;
+  align-items: center; /* vertical center */
+  justify-content: space-between; /* label left, switch right */
+  gap: 8px;
+  padding: 4px 2px;
+  min-height: var(--menu-item-height);
+  width: 100%;
+  box-sizing: border-box;
+}
+#etThemeMenu .menuContainer .toggler .editorParamsLabel {
+  flex: 1 1 auto;
+}
+#etThemeMenu .menuContainer .toggler .toggle-button {
+  margin-left: auto;
+}
+
+/* icon row: horizontal layout for light/dark */
+#etThemeMenu .menuContainer .et-theme-row { display: flex; gap: 8px; padding: 8px 6px; justify-content: space-between; }
+#etThemeMenu .menuContainer .et-theme-row > .toolbarButton { flex: 0 0 auto; }
+
+/* active state highlight for selected theme icon */
+#etThemeMenu .menuContainer .et-theme-row > .toolbarButton.toggled {
+  background-color: var(--menuitem-hover-bg-color) !important;
+  border-radius: var(--et-radius) !important;
+}
+/* Auto icon highlight uses same toggled class */
+#etThemeMenu .menuContainer #etThemeAutoIcon.toggled { background-color: var(--menuitem-hover-bg-color) !important; }
+
+/* Match secondary menu button bg/hover/focus exactly */
+#etThemeMenu .menuContainer .toolbarButton {
+  background-color: transparent !important;
+  border: none !important;
+}
+#etThemeMenu .menuContainer .toolbarButton:hover {
+  background-color: var(--menuitem-hover-bg-color) !important;
+  border-radius: var(--et-radius) !important;
+}
+#etThemeMenu .menuContainer .toolbarButton:focus-visible {
+  outline: 2px solid var(--menu-button-focus-outline-color) !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure our icon span renders (PDF.js may hide button > span) */
+#etThemeMenu .menuContainer .toolbarButton > span {
+  display: inline-flex !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Remove PDF.js masked pseudo icons for our icon-only buttons to avoid square blocks */
+#etThemeMenu .menuContainer #etThemeAutoIcon::before,
+#etThemeMenu .menuContainer #etThemeLightIcon::before,
+#etThemeMenu .menuContainer #etThemeDarkIcon::before,
+#etThemeMenu .menuContainer #etPageAutoIcon::before,
+#etThemeMenu .menuContainer #etPageLightIcon::before,
+#etThemeMenu .menuContainer #etPageDarkIcon::before {
+  content: none !important;
+  display: none !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  background: none !important;
+}
+
 /* PDF.js menus and doorhangers (공통 톤) */
 html[data-theme] .doorHanger,
 html[data-theme] .doorHangerRight,
@@ -217,8 +371,8 @@ html[data-theme] #findbar {
 }
 
 /* Menu button aesthetics - unified */
-html[data-theme] #secondaryToolbar .menuContainer button,
-html[data-theme] .menuContainer button {
+html[data-theme] #secondaryToolbar .menuContainer button:not(.toggle-button),
+html[data-theme] .menuContainer button:not(.toggle-button) {
   background-color: transparent !important;
   color: var(--menuitem-fg-color) !important;
   border: none !important;
@@ -232,7 +386,7 @@ html[data-theme] .menuContainer button {
   text-align: left !important;
 }
 
-#secondaryToolbar .menuContainer button {
+#secondaryToolbar .menuContainer .toolbarButton {
   display: flex !important;
   justify-content: flex-start !important;
   align-items: center !important;
@@ -312,20 +466,20 @@ html[data-theme] .menuContainer button {
   overflow: visible !important; /* prevent icon masks from being clipped */
 }
 
-#secondaryToolbar .menuContainer button + button,
+#secondaryToolbar .menuContainer .toolbarButton + .toolbarButton,
 #secondaryToolbar .menuContainer a.toolbarButton + a.toolbarButton,
-#secondaryToolbar .menuContainer button + a.toolbarButton,
-#secondaryToolbar .menuContainer a.toolbarButton + button {
+#secondaryToolbar .menuContainer .toolbarButton + a.toolbarButton,
+#secondaryToolbar .menuContainer a.toolbarButton + .toolbarButton {
   border-top-width: 0 !important; /* avoid double borders between neighbors */
 }
 
-#secondaryToolbar .menuContainer button:first-child,
+#secondaryToolbar .menuContainer .toolbarButton:first-child,
 #secondaryToolbar .menuContainer a.toolbarButton:first-child {
   border-top-left-radius: var(--et-radius) !important;
   border-top-right-radius: var(--et-radius) !important;
 }
 
-#secondaryToolbar .menuContainer button:last-child,
+#secondaryToolbar .menuContainer .toolbarButton:last-child,
 #secondaryToolbar .menuContainer a.toolbarButton:last-child {
   border-bottom-left-radius: var(--et-radius) !important;
   border-bottom-right-radius: var(--et-radius) !important;
@@ -460,7 +614,7 @@ html[data-theme] .menuContainer button {
 
 /* Hover state unify for anchors too */
 #secondaryToolbar .menuContainer a.toolbarButton:hover,
-#secondaryToolbar .menuContainer button:hover,
+#secondaryToolbar .menuContainer .toolbarButton:hover,
 #secondaryToolbar #viewBookmark:hover,
 #secondaryToolbar #currentOutlineItem:hover {
   background-color: var(--menuitem-hover-bg-color) !important;
@@ -473,7 +627,7 @@ html[data-theme] .menuContainer button {
   margin-bottom: 4px !important;
 }
 
-html[data-theme] #secondaryToolbar .menuContainer button:hover,
+html[data-theme] #secondaryToolbar .menuContainer .toolbarButton:hover,
 html[data-theme] .menuContainer button:hover,
 #secondaryToolbar #viewBookmark:hover,
 #secondaryToolbar #currentOutlineItem:hover {

@@ -1,3 +1,14 @@
+## EdgeTranslate custom
+
+et-theme-section = 테마
+et-theme-auto = 자동
+et-theme-light = 라이트
+et-theme-dark = 다크
+et-page-section = 페이지
+et-page-auto = 자동
+et-page-light = 라이트
+et-page-dark = 다크(반전)
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.

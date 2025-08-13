@@ -1,3 +1,14 @@
+## EdgeTranslate custom
+
+et-theme-section = 主题
+et-theme-auto = 自动
+et-theme-light = 浅色
+et-theme-dark = 深色
+et-page-section = 页面
+et-page-auto = 自动
+et-page-light = 浅色
+et-page-dark = 深色（反转）
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.

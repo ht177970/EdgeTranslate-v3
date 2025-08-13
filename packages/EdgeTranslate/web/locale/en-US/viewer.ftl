@@ -1,4 +1,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
+## EdgeTranslate custom
+
+et-theme-section = Theme
+et-theme-auto = Auto
+et-theme-light = Light
+et-theme-dark = Dark
+et-page-section = Page
+et-page-auto = Auto
+et-page-light = Light
+et-page-dark = Dark (invert)
+
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 

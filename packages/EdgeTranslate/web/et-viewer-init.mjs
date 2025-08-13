@@ -77,6 +77,18 @@ try {
       } catch {}
     }
   } catch {}
+
+  // Apply persisted page theme (auto|light|dark) early to avoid flicker
+  try {
+    const savedPage = localStorage.getItem('et_page_theme');
+    const mql = matchMedia('(prefers-color-scheme: dark)');
+    const sysDark = !!(mql && typeof mql.matches === 'boolean' && mql.matches);
+    if (savedPage === 'dark' || (savedPage !== 'light' && sysDark)) {
+      document.documentElement.setAttribute('data-page-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-page-theme');
+    }
+  } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
   const fileParam = params.get('file');
@@ -132,13 +144,17 @@ try {
   };
   ensureViewerLoaded();
 
-  // Setup theme dropdown with Auto/Light/Dark
+  // Setup theme dropdown with Auto switch and icon-only Light/Dark
   const setupThemeToggle = () => {
     const btn = document.getElementById('etThemeToggle');
     const menu = document.getElementById('etThemeMenu');
-    const btnAuto = document.getElementById('etThemeAuto');
-    const btnLight = document.getElementById('etThemeLight');
-    const btnDark = document.getElementById('etThemeDark');
+    const btnAuto = document.getElementById('etThemeAutoIcon');
+    const btnLight = document.getElementById('etThemeLightIcon');
+    const btnDark = document.getElementById('etThemeDarkIcon');
+    // Page controls (UI only now)
+    const pageAuto = document.getElementById('etPageAutoIcon');
+    const pageLight = document.getElementById('etPageLightIcon');
+    const pageDark = document.getElementById('etPageDarkIcon');
     if (!btn || !menu || !btnAuto || !btnLight || !btnDark) return false;
 
     const setExplicit = (mode) => {
@@ -180,7 +196,26 @@ try {
       }
     };
 
+    const hideOtherMenus = () => {
+      try {
+        const others = document.querySelectorAll('.doorHanger, .doorHangerRight, .menu');
+        for (const el of others) {
+          if (el === menu) continue;
+          // close the menu itself
+          el.classList.add('hidden');
+          // match PDF.js behavior: also reset controlling button's aria-expanded
+          const id = el.id;
+          if (id) {
+            const controller = document.querySelector(`[aria-controls="${CSS.escape(id)}"]`);
+            if (controller && controller.getAttribute('aria-expanded') === 'true') {
+              controller.setAttribute('aria-expanded', 'false');
+            }
+          }
+        }
+      } catch {}
+    };
     const openMenu = () => {
+      hideOtherMenus();
       menu.classList.remove('hidden');
       btn.setAttribute('aria-expanded', 'true');
     };
@@ -193,9 +228,14 @@ try {
     };
 
     const markActive = (mode) => {
-      // Clear states
+      // Clear icon button states; Auto uses system to indicate current effective mode
       for (const el of [btnAuto, btnLight, btnDark]) el.classList.remove('toggled');
-      if (mode === 'auto') btnAuto.classList.add('toggled');
+      if (mode === 'auto') {
+        const sys = computeSystem();
+        btnAuto.classList.add('toggled');
+        if (sys === 'light') btnLight.classList.add('toggled'); else btnDark.classList.add('toggled');
+        return;
+      }
       if (mode === 'light') btnLight.classList.add('toggled');
       if (mode === 'dark') btnDark.classList.add('toggled');
     };
@@ -205,20 +245,54 @@ try {
 
     btn.addEventListener('click', toggleMenu);
     btnAuto.addEventListener('click', () => {
-      setExplicit(null); // follow system
+      // Auto: follow system
+      setExplicit(null);
       syncFromStorageOrSystem();
-      closeMenu();
     });
     btnLight.addEventListener('click', () => {
       setExplicit('light');
       syncFromStorageOrSystem();
-      closeMenu();
+      // keep menu open
     });
     btnDark.addEventListener('click', () => {
       setExplicit('dark');
       syncFromStorageOrSystem();
-      closeMenu();
+      // keep menu open
     });
+
+    // Page section: visual-only mapping (no functionality wired yet)
+    const setPageThemeVisual = (mode) => {
+      for (const el of [pageAuto, pageLight, pageDark]) el && el.classList.remove('toggled');
+      if (mode === 'auto' && pageAuto) {
+        pageAuto.classList.add('toggled');
+        // also highlight current effective system icon
+        const sys = computeSystem();
+        if (sys === 'light' && pageLight) pageLight.classList.add('toggled');
+        if (sys === 'dark' && pageDark) pageDark.classList.add('toggled');
+      }
+      if (mode === 'light' && pageLight) pageLight.classList.add('toggled');
+      if (mode === 'dark' && pageDark) pageDark.classList.add('toggled');
+      // Persist selection
+      try { localStorage.setItem('et_page_theme', mode); } catch {}
+      // Apply attribute for inversion
+      if (mode === 'dark') {
+        document.documentElement.setAttribute('data-page-theme', 'dark');
+      } else if (mode === 'light') {
+        document.documentElement.removeAttribute('data-page-theme');
+      } else {
+        const sys = computeSystem();
+        if (sys === 'dark') document.documentElement.setAttribute('data-page-theme', 'dark');
+        else document.documentElement.removeAttribute('data-page-theme');
+      }
+    };
+    if (pageAuto) pageAuto.addEventListener('click', () => setPageThemeVisual('auto'));
+    if (pageLight) pageLight.addEventListener('click', () => setPageThemeVisual('light'));
+    if (pageDark) pageDark.addEventListener('click', () => setPageThemeVisual('dark'));
+    // Initialize page section toggles based on saved value
+    try {
+      const initPage = localStorage.getItem('et_page_theme') || 'auto';
+      setPageThemeVisual(initPage);
+    } catch {}
 
     // System changes apply only when in Auto
     const onSchemeChange = () => {
@@ -227,6 +301,14 @@ try {
       if (explicit !== 'dark' && explicit !== 'light') {
         syncFromStorageOrSystem();
       }
+      // If Page section is Auto, mirror system change as well
+      try {
+        const pagePref = localStorage.getItem('et_page_theme');
+        if (pagePref !== 'dark' && pagePref !== 'light') {
+          // update visual/effective inversion based on system
+          if (typeof setPageThemeVisual === 'function') setPageThemeVisual('auto');
+        }
+      } catch {}
     };
     try {
       if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onSchemeChange);
@@ -238,7 +320,39 @@ try {
       const root = document.getElementById('etTheme');
       if (!root) return;
       if (!root.contains(e.target)) closeMenu();
+    }, true);
+
+    // Close earlier in the event lifecycle to avoid race with other menus opening
+    document.addEventListener('pointerdown', (e) => {
+      const root = document.getElementById('etTheme');
+      if (!root) return;
+      if (!root.contains(e.target)) closeMenu();
+    }, true);
+
+    // Allow ESC to close menu
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
     });
+
+    // Close if any other PDF.js dropdown/doorhanger opens
+    try {
+      const closeIfOtherMenuOpens = (mutations) => {
+        for (const m of mutations) {
+          const t = m.target;
+          if (!t || t === menu) continue;
+          if (
+            t.classList &&
+            (t.classList.contains('menu') || t.classList.contains('doorHanger') || t.classList.contains('doorHangerRight')) &&
+            !t.classList.contains('hidden')
+          ) {
+            closeMenu();
+            break;
+          }
+        }
+      };
+      const mo = new MutationObserver(closeIfOtherMenuOpens);
+      mo.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+    } catch {}
     return true;
   };
 

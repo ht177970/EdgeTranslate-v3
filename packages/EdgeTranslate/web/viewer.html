@@ -205,9 +205,58 @@ See https://github.com/adobe-type-tools/cmap-resources
                   </button>
                   <div id="etThemeMenu" class="hidden doorHangerRight menu">
                     <div class="menuContainer">
-                      <button id="etThemeAuto" class="toolbarButton labeled" type="button" tabindex="0"><span>Auto</span></button>
-                      <button id="etThemeLight" class="toolbarButton labeled" type="button" tabindex="0"><span>Light</span></button>
-                      <button id="etThemeDark" class="toolbarButton labeled" type="button" tabindex="0"><span>Dark</span></button>
+                      <div class="menuSectionLabel toolbarLabel" data-l10n-id="et-theme-section"></div>
+                      <div id="etThemeIconRow" class="et-theme-row">
+                        <button id="etThemeAutoIcon" class="toolbarButton" type="button" tabindex="0" data-l10n-id="et-theme-auto">
+                          <span class="icon-auto" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <!-- Stylized capital A: two legs + crossbar -->
+                              <path d="M8.2 19h-2.1l5.1-14h1.6l5.1 14h-2.1l-1.2-3.4H9.4L8.2 19Zm2.0-5.4h3.6l-1.8-5.2-1.8 5.2Z"/>
+                            </svg>
+                          </span>
+                        </button>
+                        <button id="etThemeLightIcon" class="toolbarButton" type="button" tabindex="0" data-l10n-id="et-theme-light">
+                          <span class="icon-sun" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM1 13h3v-2H1v2zm10-9h-2v3h2V4zm7.04 1.46l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zM17 13h3v-2h-3v2zm-5 7h2v-3h-2v3zm6.24-1.84l1.79 1.79 1.41-1.41-1.79-1.79-1.41 1.41zM12 8a4 4 0 100 8 4 4 0 000-8zM4.22 17.66l1.41 1.41 1.79-1.79-1.41-1.41-1.79 1.79z"/>
+                            </svg>
+                          </span>
+                        </button>
+                        <button id="etThemeDarkIcon" class="toolbarButton" type="button" tabindex="0" data-l10n-id="et-theme-dark">
+                          <span class="icon-moon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12.74 2a9 9 0 108.32 13.07A7 7 0 0112.74 2z"/>
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
+
+                      <div class="horizontalToolbarSeparator"></div>
+
+                      <div class="menuSectionLabel toolbarLabel" style="margin-top: 6px;" data-l10n-id="et-page-section"></div>
+                      <div id="etPageIconRow" class="et-theme-row">
+                        <button id="etPageAutoIcon" class="toolbarButton" type="button" tabindex="0" data-l10n-id="et-page-auto">
+                          <span class="icon-auto" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.2 19h-2.1l5.1-14h1.6l5.1 14h-2.1l-1.2-3.4H9.4L8.2 19Zm2.0-5.4h3.6l-1.8-5.2-1.8 5.2Z"/>
+                            </svg>
+                          </span>
+                        </button>
+                        <button id="etPageLightIcon" class="toolbarButton" type="button" tabindex="0" data-l10n-id="et-page-light">
+                          <span class="icon-sun" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM1 13h3v-2H1v2zm10-9h-2v3h2V4zm7.04 1.46l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zM17 13h3v-2h-3v2zm-5 7h2v-3h-2v3zm6.24-1.84l1.79 1.79 1.41-1.41-1.79-1.79-1.41 1.41zM12 8a4 4 0 100 8 4 4 0 000-8zM4.22 17.66l1.41 1.41 1.79-1.79-1.41-1.41-1.79 1.79z"/>
+                            </svg>
+                          </span>
+                        </button>
+                        <button id="etPageDarkIcon" class="toolbarButton" type="button" tabindex="0" data-l10n-id="et-page-dark">
+                          <span class="icon-moon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12.74 2a9 9 0 108.32 13.07A7 7 0 0112.74 2z"/>
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
