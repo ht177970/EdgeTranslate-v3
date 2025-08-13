@@ -262,6 +262,14 @@ function getSelection() {
     if (selection.rangeCount > 0) {
         text = selection.toString().trim();
 
+        // PDF.js 뷰어에서 선택 텍스트가 레이아웃 줄바꿈 기준으로 끊어지는 문제 보정
+        // 참고: https://github.com/Meapri/EdgeTranslate-v3/issues/3
+        const isPdfViewer =
+            !!document.getElementById("viewer") && !!document.getElementById("outerContainer");
+        if (isPdfViewer && text) {
+            text = normalizePdfSelectionText(text);
+        }
+
         const lastRange = selection.getRangeAt(selection.rangeCount - 1);
         // If the user selects something in a shadow dom, the endContainer will be the HTML element and the position will be [0,0]. In this situation, we set the position undefined to avoid relocating the result panel.
         if (lastRange.endContainer !== document.documentElement) {
@@ -270,6 +278,28 @@ function getSelection() {
         }
     }
     return { text, position };
+}
+
+/**
+ * PDF.js 선택 텍스트 정규화: 하이픈 줄바꿈/단일 개행을 문장 기준으로 자연스럽게 결합
+ * - 하이픈 줄바꿈: "re-\n+ *   sult" -> "result"
+ * - 단일 개행: 공백으로 치환, 연속 개행(단락 구분)은 유지
+ * - 여분 공백 축소
+ */
+function normalizePdfSelectionText(input) {
+    // 통일된 개행
+    let s = String(input).replace(/\r\n?/g, "\n");
+    // 하이픈 줄바꿈 결합(영문 위주 안전 규칙)
+    s = s.replace(/([A-Za-z])\-\n([A-Za-z])/g, "$1$2");
+    // 단일 개행을 공백으로(단락 구분 \n\n 은 유지)
+    // 먼저 단락 구분을 임시 토큰으로 보존
+    const PARA = "\u0001\u0001__ET_PARA__\u0001\u0001";
+    s = s.replace(/\n\n+/g, PARA);
+    s = s.replace(/\n+/g, " ");
+    s = s.replace(new RegExp(PARA, "g"), "\n\n");
+    // 다중 공백 축소
+    s = s.replace(/\s{2,}/g, " ");
+    return s.trim();
 }
 
 /**
