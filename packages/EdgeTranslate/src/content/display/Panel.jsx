@@ -105,6 +105,11 @@ function scoreVoiceFor(langBCP47, voice) {
     if (voice.default) score += 2;
     // Korean-specific preferred voice names
     if (langBCP47.startsWith("ko")) {
+        // If Siri voices are exposed (rare), strongly prefer them
+        if (name.includes("siri")) {
+            score += 12;
+            if (/siri.*2|2.*siri/.test(name)) score += 3; // Prefer "Voice 2" variant
+        }
         if (name.includes("korean")) score += 4;
         if (name.includes("yuna") || name.includes("yuri") || name.includes("nara")) score += 3;
         if (name.includes("한국")) score += 4;
@@ -127,6 +132,25 @@ async function pickBestVoice(lang) {
     if (!list || !list.length) return { lang: normalized, voice: null };
     // Safari + 한국어: 이름에 'Yuna' 포함된 로컬 Apple 보이스를 우선 선택
     if (isSafariUA() && normalized.startsWith("ko")) {
+        // Try Siri Voice 2 first if exposed
+        const siri2 = list.find((v) => {
+            const n = (v.name || "").toLowerCase();
+            return /siri/.test(n) && /2/.test(n) && v.localService !== false;
+        });
+        if (siri2) {
+            lastVoiceByLang.set(cacheKey, siri2);
+            return { lang: normalized, voice: siri2 };
+        }
+        // Fallback to any Siri
+        const siriAny = list.find((v) => {
+            const n = (v.name || "").toLowerCase();
+            return /siri/.test(n) && v.localService !== false;
+        });
+        if (siriAny) {
+            lastVoiceByLang.set(cacheKey, siriAny);
+            return { lang: normalized, voice: siriAny };
+        }
+        // Then fallback to Yuna
         const yuna = list.find((v) => {
             const n = (v.name || "").toLowerCase();
             return /yuna/.test(n) && v.localService !== false;
