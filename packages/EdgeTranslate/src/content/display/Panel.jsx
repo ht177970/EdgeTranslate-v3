@@ -114,8 +114,6 @@ export default function ResultPanel() {
                         try {
                             const normLang = normalizeBCP47(language);
                             if (normLang) utter.lang = normLang;
-                            utter.rate = speed === "fast" ? 1.0 : 0.8;
-                            utter.pitch = 1.0;
                         } catch {}
                         speechSynthesis.speak(utter);
                     })();
