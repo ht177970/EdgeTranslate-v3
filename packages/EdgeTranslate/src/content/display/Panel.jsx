@@ -89,17 +89,40 @@ function scoreVoiceFor(langBCP47, voice) {
         score += 5;
     if (voice.lang && voice.lang.toLowerCase() === langBCP47.toLowerCase()) score += 10;
     const name = (voice.name || "").toLowerCase();
+    const voiceUri = (voice.voiceURI || "").toLowerCase();
     // Prefer local voices to avoid online/streamed voices when possible
     if (voice.localService) score += 4;
-    // Prefer high-quality engines when available
+    // Penalize novelty/robotic voices
+    const novelty = [
+        "bad news",
+        "bahh",
+        "bells",
+        "boing",
+        "bubbles",
+        "cellos",
+        "deranged",
+        "good news",
+        "jester",
+        "junior",
+        "organ",
+        "princess",
+        "superstar",
+        "ralph",
+        "trinoids",
+        "whisper",
+        "zarvox",
+    ];
+    if (novelty.some((k) => name.includes(k))) score -= 12;
+    // Penalize Eloquence series for more natural output
+    const eloquence = ["eloquence", "eddy", "flo", "grandma", "grandpa", "reed", "rocko", "sandy", "shelley"];
+    if (eloquence.some((k) => name.includes(k) || voiceUri.includes(k))) score -= 8;
     // Keep engine hints mild to avoid large cross-browser differences
     if (name.includes("neural") || name.includes("natural")) score += 2;
     if (voice.default) score += 2;
     // Korean-specific preferred voice names (Siri boost handled above)
     if (langBCP47.startsWith("ko")) {
-        if (name.includes("korean")) score += 4;
-        if (name.includes("yuri") || name.includes("nara")) score += 3; // keep neutral, Yuna bias removed
-        if (name.includes("한국")) score += 4;
+        if (name.includes("korean") || name.includes("한국")) score += 3;
+        if (name.includes("yuri") || name.includes("nara")) score += 2; // keep neutral
     }
     return score;
 }
