@@ -32,6 +32,92 @@ let documentBodyCSS = "";
 // The duration time of result panel's transition. unit: ms.
 const transitionDuration = 500;
 
+// Cache voices and selection to avoid re-computation
+let cachedVoices = null;
+let voicesLoaded = false;
+let lastVoiceByLang = new Map();
+
+async function loadVoices() {
+    if (typeof speechSynthesis === "undefined") return [];
+    const existing = speechSynthesis.getVoices();
+    if (existing && existing.length) {
+        voicesLoaded = true;
+        cachedVoices = existing;
+        return existing;
+    }
+    return new Promise((resolve) => {
+        const onVoices = () => {
+            const list = speechSynthesis.getVoices() || [];
+            cachedVoices = list;
+            voicesLoaded = true;
+            speechSynthesis.removeEventListener?.("voiceschanged", onVoices);
+            resolve(list);
+        };
+        speechSynthesis.addEventListener?.("voiceschanged", onVoices);
+        // Fallback timeout in case event never fires
+        setTimeout(() => {
+            const list = speechSynthesis.getVoices() || [];
+            if (!voicesLoaded && list.length) {
+                cachedVoices = list;
+                voicesLoaded = true;
+                speechSynthesis.removeEventListener?.("voiceschanged", onVoices);
+                resolve(list);
+            } else if (!voicesLoaded) {
+                resolve(list);
+            }
+        }, 1000);
+    });
+}
+
+function normalizeBCP47(lang) {
+    if (!lang) return "";
+    const lower = String(lang).toLowerCase();
+    if (lower === "ko" || lower.startsWith("ko-")) return "ko-KR";
+    if (lower === "en" || lower.startsWith("en-")) return "en-US";
+    if (lower === "ja" || lower.startsWith("ja-")) return "ja-JP";
+    if (lower === "zh" || lower.startsWith("zh-cn")) return "zh-CN";
+    if (lower.startsWith("zh-tw")) return "zh-TW";
+    return lang;
+}
+
+function scoreVoiceFor(langBCP47, voice) {
+    let score = 0;
+    if (!voice) return -1;
+    if (voice.lang && voice.lang.toLowerCase().startsWith(langBCP47.toLowerCase().split("-")[0]))
+        score += 5;
+    if (voice.lang && voice.lang.toLowerCase() === langBCP47.toLowerCase()) score += 10;
+    const name = (voice.name || "").toLowerCase();
+    // Prefer high-quality engines when available
+    if (name.includes("google")) score += 8;
+    if (name.includes("apple")) score += 6;
+    // Korean-specific preferred voice names
+    if (langBCP47.startsWith("ko")) {
+        if (name.includes("korean")) score += 4;
+        if (name.includes("yuna") || name.includes("yuri") || name.includes("nara")) score += 3;
+        if (name.includes("한국")) score += 4;
+    }
+    return score;
+}
+
+async function pickBestVoice(lang) {
+    const normalized = normalizeBCP47(lang || "");
+    const cacheKey = normalized || "default";
+    if (lastVoiceByLang.has(cacheKey)) return { lang: normalized, voice: lastVoiceByLang.get(cacheKey) };
+    const list = cachedVoices || (await loadVoices());
+    if (!list || !list.length) return { lang: normalized, voice: null };
+    let best = null;
+    let bestScore = -1;
+    for (const v of list) {
+        const s = scoreVoiceFor(normalized || v.lang || "", v);
+        if (s > bestScore) {
+            best = v;
+            bestScore = s;
+        }
+    }
+    lastVoiceByLang.set(cacheKey, best);
+    return { lang: normalized, voice: best };
+}
+
 export default function ResultPanel() {
     // Whether the result is open.
     const [open, setOpen] = useState(false);
@@ -94,8 +180,20 @@ export default function ResultPanel() {
                     speechSynthesis.cancel();
 
                     const utter = new SpeechSynthesisUtterance(text);
-                    utter.lang = language;
-                    utter.rate = speed === "fast" ? 1.0 : 0.6;
+                    // 언어 정규화 및 최적 음성 선택
+                    (async () => {
+                        try {
+                            const { lang: normLang, voice } = await pickBestVoice(language);
+                            if (normLang) utter.lang = normLang;
+                            if (voice) utter.voice = voice;
+                            // 한국어는 너무 빠르게 들리는 경향 보정
+                            const isKorean = (utter.lang || "").toLowerCase().startsWith("ko");
+                            utter.rate = isKorean ? (speed === "fast" ? 0.9 : 0.7) : speed === "fast" ? 1.0 : 0.8;
+                            // 약간의 톤 보정
+                            utter.pitch = 1.0;
+                        } catch {}
+                        speechSynthesis.speak(utter);
+                    })();
 
                     let isFinished = false; // 중복 처리 방지
 
@@ -162,7 +260,6 @@ export default function ResultPanel() {
                         finishTTS("completed");
                     };
 
-                    speechSynthesis.speak(utter);
                 });
             }
 
