@@ -40,6 +40,12 @@ try {
 // Prepare URL before loading viewer.mjs, following official behavior where file param drives initial load
 (async () => {
   const DEBUG = false;
+  const isAndroidChrome = (() => {
+    try {
+      const ua = navigator.userAgent || '';
+      return /Android/i.test(ua) && /Chrome\//i.test(ua);
+    } catch { return false; }
+  })();
   // Apply persisted theme early to avoid FOUC
   try {
     // Determine desired mode from our own preference or system
@@ -59,7 +65,18 @@ try {
     // Apply immediately so UI paints correctly before viewer init
     document.documentElement.style.colorScheme = saved;
     document.documentElement.setAttribute('data-theme', saved);
-    // Do not set meta theme-color: let Chrome follow its own light/dark UI
+    // Conditionally set theme-color only for Android Chrome (affects status/toolbar)
+    if (isAndroidChrome) {
+      try {
+        let tag = document.querySelector('meta[name="theme-color"]');
+        if (!tag) {
+          tag = document.createElement('meta');
+          tag.setAttribute('name', 'theme-color');
+          document.head.appendChild(tag);
+        }
+        tag.setAttribute('content', saved === 'dark' ? '#101317' : '#f6f8fb');
+      } catch {}
+    }
   } catch {}
   const urlObj = new URL(location.href);
   const params = urlObj.searchParams;
@@ -125,7 +142,18 @@ try {
       // Update document styles
       document.documentElement.style.colorScheme = mode;
       document.documentElement.setAttribute('data-theme', mode);
-      // Do not set meta theme-color here either
+      // Update theme-color only on Android Chrome
+      if (isAndroidChrome) {
+        try {
+          let tag = document.querySelector('meta[name="theme-color"]');
+          if (!tag) {
+            tag = document.createElement('meta');
+            tag.setAttribute('name', 'theme-color');
+            document.head.appendChild(tag);
+          }
+          tag.setAttribute('content', mode === 'dark' ? '#101317' : '#f6f8fb');
+        } catch {}
+      }
       // Persist in both our storage and PDF.js preferences
       try {
         localStorage.setItem('et_viewer_theme', mode);
