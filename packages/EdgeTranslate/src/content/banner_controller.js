@@ -65,6 +65,17 @@ class BannerController {
             }
         });
 
+        // Kick off DOM fallback on explicit request
+        this.channel.on("start_dom_page_translate", () => {
+            this.startDomFallback();
+            // initial scan to cover existing content
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            let t;
+            while ((t = walker.nextNode())) nodes.push(t);
+            this.translateBatchNodes(nodes);
+        });
+
         // Background may request canceling DOM fallback scheduling when banner is visible
         this.channel.on("page_translate_control", (detail) => {
             if (detail && detail.action === "cancel_dom_fallback") {
