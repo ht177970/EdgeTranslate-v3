@@ -744,12 +744,16 @@ export default function ResultPanel() {
 
         /* Fit the panel to the content size */
         if (contentTypeRef.current === "RESULT" || contentTypeRef.current === "ERROR") {
-            const actualHeight =
-                headElRef.current.clientHeight +
-                (simplebarRef.current?.getContentElement().clientHeight || 0);
+            // Guard against unmounted refs or transient nulls from SimpleBar
+            const headH = headElRef.current?.clientHeight || 0;
+            const contentEl =
+                typeof simplebarRef.current?.getContentElement === "function"
+                    ? simplebarRef.current.getContentElement()
+                    : null;
+            const contentH = contentEl?.clientHeight || 0;
+            const actualHeight = headH + contentH;
             // If the height of simplebar content element isn't 0.
-            if (actualHeight !== headElRef.current.clientHeight && panelHeight > actualHeight)
-                panelHeight = actualHeight;
+            if (actualHeight !== headH && panelHeight > actualHeight) panelHeight = actualHeight;
         }
 
         moveablePanelRef.current.request("resizable", {
