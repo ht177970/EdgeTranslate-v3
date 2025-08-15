@@ -52,8 +52,132 @@ try {
 // Note: onSuspend is not supported in Safari; intentionally not registering.
 
 /**
- * PDF 내비게이션 가로채기: chrome 기본 PDF 뷰어 대신 내장 PDF.js 뷰어로 열기
- * - MV3 service worker에서 webNavigation.onCommitted 사용
+ * PDF 감지를 위한 스마트 로직 (PDF.js 스타일 구현)
+ */
+const pdfDetectionCache = new Map(); // URL별 PDF 여부 캐시
+
+/**
+ * PDF.js 방식: Content-Disposition 헤더 확인
+ */
+function isDownloadRequest(headers) {
+    const contentDisposition =
+        headers.find((h) => h.name.toLowerCase() === "content-disposition")?.value?.toLowerCase() ||
+        "";
+
+    return contentDisposition.includes("attachment");
+}
+
+/**
+ * PDF.js 방식: 다양한 PDF MIME 타입 체크
+ */
+function isPdfContentType(contentType) {
+    const type = contentType.toLowerCase();
+    return (
+        type.includes("application/pdf") ||
+        type.includes("application/x-pdf") ||
+        type.includes("text/pdf") ||
+        // PDF 서버에서 잘못된 MIME 타입을 반환하는 경우 대비
+        (type.includes("application/octet-stream") && type.includes("pdf"))
+    );
+}
+
+/**
+ * PDF.js 방식: URL 패턴 기반 스마트 감지 (더 포괄적)
+ */
+function isPotentialPdfUrl(url) {
+    // 1. 명확한 .pdf 확장자 (PDF.js 스타일)
+    if (/\.pdf($|[?#])/i.test(url)) return true;
+
+    // 2. URL 경로에서 PDF 단서 찾기 (더 정확한 패턴)
+    if (/\/pdf\/[^\/]+/i.test(url)) return true; // /pdf/filename 형태
+    if (/[?&][^=]*\.pdf/i.test(url)) return true; // 쿼리 파라미터에 .pdf
+    if (/\/download[^\/]*pdf/i.test(url)) return true; // download 경로 + pdf
+    if (/\/view[^\/]*pdf/i.test(url)) return true; // view 경로 + pdf
+
+    // 3. 학술/문서 사이트 패턴 (일반화된 접근)
+    if (/\/(papers?|documents?|files?|articles?|publications?)\//i.test(url)) {
+        // 숫자나 특수 문자가 포함된 문서 ID 패턴, 하지만 너무 일반적인 단어는 제외
+        const pathMatch = url.match(
+            /\/(papers?|documents?|files?|articles?|publications?)\/([^\/\?#]+)/i
+        );
+        if (pathMatch) {
+            const docId = pathMatch[2];
+            // 숫자, 하이픈, 언더스코어, 점이 포함되고 "info", "list", "about" 같은 일반 단어가 아닌 경우
+            if (/[\d\-_\.]/i.test(docId) && !/^(info|list|about|help|index|home)$/i.test(docId)) {
+                return true;
+            }
+        }
+    }
+
+    // 4. 도메인별 특별 처리 (PDF.js의 알려진 패턴들)
+    const domain = url.match(/\/\/([^\/]+)/)?.[1]?.toLowerCase() || "";
+    if (domain.includes("arxiv") && /\/pdf\//i.test(url)) return true;
+    if (domain.includes("researchgate") && (/\.pdf/i.test(url) || /\/pdf/i.test(url))) return true;
+    if (domain.includes("ieee") && /\/pdf/i.test(url)) return true;
+    if (domain.includes("acm") && /\/pdf/i.test(url)) return true;
+    if (domain.includes("springer") && (/\.pdf/i.test(url) || /\/pdf/i.test(url))) return true;
+    if (domain.includes("sciencedirect") && /\/pdf/i.test(url)) return true;
+    if (domain.includes("jstor") && /\.pdf/i.test(url)) return true;
+
+    return false;
+}
+
+/**
+ * PDF.js 스타일: webRequest로 정확한 PDF 감지
+ */
+try {
+    chrome.webRequest.onHeadersReceived.addListener(
+        (details) => {
+            // main_frame만 처리
+            if (details.frameId !== 0) return;
+
+            const url = details.url;
+            const headers = details.responseHeaders || [];
+
+            // Content-Type 헤더 확인 (PDF.js 방식)
+            const contentTypeHeader = headers.find((h) => h.name.toLowerCase() === "content-type");
+            const contentType = contentTypeHeader?.value?.toLowerCase() || "";
+
+            // PDF.js 스타일: 더 포괄적인 PDF MIME 타입 체크
+            const isPdf = isPdfContentType(contentType);
+
+            // PDF.js 스타일: Content-Disposition으로 다운로드 요청 감지
+            const isDownload = isDownloadRequest(headers);
+
+            // 캐시에 결과 저장
+            pdfDetectionCache.set(url, { isPdf, isDownload, contentType });
+
+            // PDF이지만 다운로드 요청이 아닌 경우에만 리디렉션
+            if (isPdf && !isDownload) {
+                setTimeout(async () => {
+                    try {
+                        const viewerUrl = chrome.runtime.getURL(
+                            `web/viewer.html?file=${encodeURIComponent(
+                                url
+                            )}&source=${encodeURIComponent(url)}`
+                        );
+                        await chrome.tabs.update(details.tabId, { url: viewerUrl });
+                        logInfo(`PDF redirected: ${url} (Content-Type: ${contentType})`);
+                    } catch (e) {
+                        logWarn("PDF redirect failed", e);
+                    }
+                }, 10);
+            } else if (isPdf && isDownload) {
+                logInfo(`PDF download request ignored: ${url}`);
+            }
+        },
+        {
+            urls: ["<all_urls>"],
+            types: ["main_frame"],
+        },
+        ["responseHeaders"]
+    );
+} catch (e) {
+    logWarn("webRequest unavailable, falling back to URL-based detection", e);
+}
+
+/**
+ * PDF.js 스타일: webNavigation 폴백 (URL 패턴 기반)
  */
 try {
     chrome.webNavigation.onCommitted.addListener(async (details) => {
@@ -62,20 +186,32 @@ try {
         const url = details.url;
         if (!/^https?:|^file:|^ftp:/i.test(url)) return;
 
-        // PDF 판별: 확장자 또는 MIME 힌트 파라미터
-        const isPdf = /\.pdf($|[?#])/i.test(url);
-        if (!isPdf) return;
+        // 이미 webRequest에서 처리되었다면 결과 확인
+        const cachedResult = pdfDetectionCache.get(url);
+        if (cachedResult) {
+            // 캐시에서 5초 후 제거 (메모리 관리)
+            setTimeout(() => pdfDetectionCache.delete(url), 5000);
 
-        // 확장 뷰어 URL 구성: web/viewer.html?file=<encoded>
-        // cross-origin 파일을 viewer가 fetch->blob으로 열 수 있게 file 파라미터만 전달
-        // Pass original source as source param to allow blob rehydration on refresh
+            // webRequest에서 이미 PDF가 아니라고 판단했다면 스킵
+            if (cachedResult.isPdf === false) return;
+
+            // 다운로드 요청이었다면 스킵
+            if (cachedResult.isDownload) return;
+        }
+
+        // PDF.js 스타일: URL 패턴으로 PDF 가능성 확인
+        const isPotentialPdf = isPotentialPdfUrl(url);
+        if (!isPotentialPdf) return;
+
+        // 확장 뷰어 URL 구성
         const viewerUrl = chrome.runtime.getURL(
             `web/viewer.html?file=${encodeURIComponent(url)}&source=${encodeURIComponent(url)}`
         );
 
-        // 탭 업데이트로 리디렉션 (드래그/로컬 파일 등 기타 경로는 지원하지 않음)
+        // 탭 업데이트로 리디렉션
         try {
             await chrome.tabs.update(details.tabId, { url: viewerUrl });
+            logInfo(`PDF redirected via URL pattern: ${url}`);
         } catch (e) {
             logWarn("PDF redirect failed", e);
         }

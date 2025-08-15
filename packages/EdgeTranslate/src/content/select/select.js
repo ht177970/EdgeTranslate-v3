@@ -310,14 +310,21 @@ function normalizePdfSelectionText(input) {
     const CJK = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uAC00-\uD7AF]/; // 히라가나/가타카나/한자/한글
     if (CJK.test(s)) {
         // CJK <space> CJK → 붙여쓰기 (일반 규칙)
-        const CJK_RANGE = "\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF";
+        const CJK_RANGE =
+            "\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\uF900-\\uFAFF\\uAC00-\\uD7AF";
         const CJK_PAIR_RE = new RegExp(`([${CJK_RANGE}])\\s+([${CJK_RANGE}])`, "g");
         s = s.replace(CJK_PAIR_RE, "$1$2");
 
         // 여는 괄호/따옴표 뒤 공백 제거, 닫는 괄호/따옴표/문장부호 앞 공백 제거 (언어 비의존)
         s = s
-            .replace(/([\(\[\{\u3008\u300A\u300C\u300E\u3010\uFF08\uFF3B\uFF5B\u201C\u2018])\s+/g, "$1")
-            .replace(/\s+([\)\]\}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u2019\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g, "$1");
+            .replace(
+                /([\(\[\{\u3008\u300A\u300C\u300E\u3010\uFF08\uFF3B\uFF5B\u201C\u2018])\s+/g,
+                "$1"
+            )
+            .replace(
+                /\s+([\)\]\}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u2019\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g,
+                "$1"
+            );
     }
 
     // 단락 토큰 복원 및 다중 공백 축소
