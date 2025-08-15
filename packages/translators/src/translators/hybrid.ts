@@ -8,6 +8,7 @@ import {
 import BingTranslator from "./bing";
 import DeepLTranslator from "./deepl";
 import GoogleTranslator from "./google";
+import { LRUCache } from "../utils/lru";
 
 export type HybridSupportedTranslators =
     | "BingTranslate"
@@ -35,6 +36,11 @@ class HybridTranslator {
         DeepLTranslate: DeepLTranslator;
     };
     MAIN_TRANSLATOR: HybridSupportedTranslators = "GoogleTranslate";
+
+    // Cache: translation results by (text,from,to) hash
+    private cache = new LRUCache<string, TranslationResult>({ max: 200, ttl: 5 * 60 * 1000 });
+    // In-flight requests to dedupe concurrent calls
+    private inflight = new Map<string, Promise<TranslationResult>>();
 
     constructor(config: HybridConfig, channel: any) {
         this.channel = channel;
@@ -166,14 +172,31 @@ class HybridTranslator {
      * @returns result Promise
      */
     async translate(text: string, from: string, to: string) {
+        // Fast paths: ignore empty/whitespace
+        if (!text || !text.trim()) {
+            return { originalText: text || "", mainMeaning: "" } as TranslationResult;
+        }
+
+        // Normalize inputs to keep key stable
+        const key = `${from}|${to}|${text.length>512?text.slice(0,512):text}`;
+
+        // Cache hit
+        const cached = this.cache.get(key);
+        if (cached) return cached;
+
+        // In-flight dedupe
+        const existing = this.inflight.get(key);
+        if (existing) return existing;
+
+        const exec = (async (): Promise<TranslationResult> => {
         // Initiate translation requests.
-        let requests = [];
+        let requests: Promise<[HybridSupportedTranslators, TranslationResult]>[] = [];
         for (let translator of this.CONFIG.translators) {
             // Translate with a translator.
             requests.push(
                 this.REAL_TRANSLATORS[translator]
                     .translate(text, from, to)
-                    .then((result) => [translator, result])
+                    .then((result) => [translator, result] as [HybridSupportedTranslators, TranslationResult])
             );
         }
 
@@ -182,9 +205,7 @@ class HybridTranslator {
             originalText: "",
             mainMeaning: "",
         };
-        const results = new Map(
-            (await Promise.all(requests)) as [HybridSupportedTranslators, TranslationResult][]
-        );
+        const results = new Map(await Promise.all(requests));
         let item: keyof Selections;
         for (item in this.CONFIG.selections) {
             try {
@@ -198,7 +219,19 @@ class HybridTranslator {
                 console.log(error);
             }
         }
+        // Fill passthrough originalText if empty
+        if (!translation.originalText) translation.originalText = text;
+        this.cache.set(key, translation);
         return translation;
+        })();
+
+        this.inflight.set(key, exec);
+        try {
+            const res = await exec;
+            return res;
+        } finally {
+            this.inflight.delete(key);
+        }
     }
 
     /**

@@ -1,4 +1,5 @@
 import axios from "../axios";
+import { LRUCache } from "../utils/lru";
 import { Example, PronunciationSpeed, TranslationResult } from "../types";
 
 /**
@@ -159,6 +160,9 @@ class GoogleTranslator {
      * Audio instance.
      */
     AUDIO = new Audio();
+
+    // Lightweight cache for translate/detect results (short TTL as backend may vary)
+    private cache = new LRUCache<string, any>({ max: 200, ttl: 2 * 60 * 1000 });
 
     /* eslint-disable */
     /**
@@ -511,6 +515,10 @@ class GoogleTranslator {
      * @returns detected language Promise
      */
     detect(text: string) {
+        if (!text || !text.trim()) return Promise.resolve("");
+        const key = `detect|${text.length>512?text.slice(0,512):text}`;
+        const hit = this.cache.get(key);
+        if (hit) return Promise.resolve(hit);
         const detectOnce = async (): Promise<string> => {
             /**
              * Google uses 4xx errors to indicate request parameters invalid, so axios should
@@ -522,7 +530,9 @@ class GoogleTranslator {
             });
 
             if (response.status === 200) {
-                return this.parseDetectResult(response.data);
+                const lang = this.parseDetectResult(response.data);
+                this.cache.set(key, lang);
+                return lang;
             }
 
             /**
@@ -560,6 +570,12 @@ class GoogleTranslator {
      * @returns {Promise<Object>} translation Promise
      */
     translate(text: string, from: string, to: string) {
+        if (!text || !text.trim()) {
+            return Promise.resolve({ originalText: text || "", mainMeaning: "" } as any);
+        }
+        const key = `translate|${from}|${to}|${text.length>512?text.slice(0,512):text}`;
+        const hit = this.cache.get(key);
+        if (hit) return Promise.resolve(hit);
         const translateOnce = async (): Promise<TranslationResult> => {
             /**
              * Google uses 4xx errors to indicate request parameters invalid, so axios should
@@ -572,6 +588,7 @@ class GoogleTranslator {
 
             if (response.status === 200) {
                 let result = this.parseTranslateResult(response.data);
+                this.cache.set(key, result);
                 return result;
             }
 
