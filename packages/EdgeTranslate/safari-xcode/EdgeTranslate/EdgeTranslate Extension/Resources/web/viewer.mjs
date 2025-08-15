@@ -15557,9 +15557,9 @@ const PDFViewerApplication = {
       eventBus
     } = this;
     let file;
-    const queryString = document.location.search.substring(1);
-    const params = parseQueryString(queryString);
-    file = params.get("file") ?? AppOptions.get("defaultUrl");
+  const queryString = document.location.search.substring(1);
+  const params = parseQueryString(queryString);
+  file = params.get("file") ?? AppOptions.get("defaultUrl");
     try {
       file = new URL(decodeURIComponent(file)).href;
     } catch {
@@ -15620,8 +15620,17 @@ const PDFViewerApplication = {
       appConfig.findBar?.toggleButton?.classList.add("hidden");
     }
     if (file) {
+      // If a 'source' query parameter is present (set by EdgeTranslate when
+      // preloading cross-origin PDFs into blob: URLs), pass it along as
+      // originalUrl so the viewer title uses a human-friendly source URL
+      // instead of a blob UUID.
+      let originalUrl = params.get("source");
+      if (originalUrl) {
+        try { originalUrl = decodeURIComponent(originalUrl); } catch {}
+      }
       this.open({
-        url: file
+        url: file,
+        ...(originalUrl ? { originalUrl } : {})
       });
     } else {
       this._hideViewBookmark();
