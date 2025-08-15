@@ -1,5 +1,6 @@
 import axios from "../axios";
 import { LRUCache } from "../utils/lru";
+import { fnv1a32 } from "../utils/hash";
 import { Example, PronunciationSpeed, TranslationResult } from "../types";
 
 /**
@@ -163,6 +164,21 @@ class GoogleTranslator {
 
     // Lightweight cache for translate/detect results (short TTL as backend may vary)
     private cache = new LRUCache<string, any>({ max: 200, ttl: 2 * 60 * 1000 });
+    // Simple concurrency limiter: allow at most 2 network calls in parallel per instance
+    private inflightCount = 0;
+    private queue: (() => void)[] = [];
+    private async _acquireSlot() {
+        if (this.inflightCount < 2) { this.inflightCount++; return; }
+        await new Promise<void>(resolve => this.queue.push(resolve));
+        this.inflightCount++;
+    }
+    private _releaseSlot() {
+        this.inflightCount = Math.max(0, this.inflightCount - 1);
+        const next = this.queue.shift();
+        if (next) next();
+    }
+    // Memoize TK per (str, tkk0, tkk1) small window to cut CPU on long texts
+    private tkMemo = new LRUCache<string, string>({ max: 256, ttl: 60 * 1000 });
 
     /* eslint-disable */
     /**
@@ -175,6 +191,9 @@ class GoogleTranslator {
      * @returns request TK
      */
     generateTK(a: any, b: any, c: any) {
+        const key = `${b}.${c}.${fnv1a32(typeof a === 'string' ? a : String(a))}`;
+        const memo = this.tkMemo.get(key);
+        if (memo) return memo;
         b = Number(b) || 0;
         let e = [];
         let f = 0;
@@ -203,7 +222,9 @@ class GoogleTranslator {
         a ^= Number(c) || 0;
         0 > a && (a = (a & 2147483647) + 2147483648);
         a %= 1e6;
-        return a.toString() + "." + (a ^ b);
+    const tk = a.toString() + "." + (a ^ b);
+    this.tkMemo.set(key, tk);
+    return tk;
     }
 
     /**
@@ -516,7 +537,7 @@ class GoogleTranslator {
      */
     detect(text: string) {
         if (!text || !text.trim()) return Promise.resolve("");
-        const key = `detect|${text.length>512?text.slice(0,512):text}`;
+    const key = `Gd|${fnv1a32(text)}`;
         const hit = this.cache.get(key);
         if (hit) return Promise.resolve(hit);
         const detectOnce = async (): Promise<string> => {
@@ -524,10 +545,14 @@ class GoogleTranslator {
              * Google uses 4xx errors to indicate request parameters invalid, so axios should
              * not throw error when status code is less than 500.
              */
+            await this._acquireSlot();
+            let _status = 0;
+            try {
             const response = await axios.get(this.generateDetectURL(text), {
                 validateStatus: (status) => status < 500,
                 timeout: axios.defaults.timeout || 8000,
             });
+            _status = response.status;
 
             if (response.status === 200) {
                 const lang = this.parseDetectResult(response.data);
@@ -542,10 +567,11 @@ class GoogleTranslator {
                 this.fallBack();
                 return await this.updateTKK().then(detectOnce);
             }
-
+            } finally { this._releaseSlot(); }
+            const status = _status;
             throw {
                 errorType: "API_ERR",
-                errorCode: response.status,
+                errorCode: status,
                 errorMsg: "Detect failed.",
                 errorAct: {
                     api: "google",
@@ -573,7 +599,7 @@ class GoogleTranslator {
         if (!text || !text.trim()) {
             return Promise.resolve({ originalText: text || "", mainMeaning: "" } as any);
         }
-        const key = `translate|${from}|${to}|${text.length>512?text.slice(0,512):text}`;
+    const key = `Gt|${from}|${to}|${fnv1a32(text)}`;
         const hit = this.cache.get(key);
         if (hit) return Promise.resolve(hit);
         const translateOnce = async (): Promise<TranslationResult> => {
@@ -581,10 +607,14 @@ class GoogleTranslator {
              * Google uses 4xx errors to indicate request parameters invalid, so axios should
              * not throw error when status code is less than 500.
              */
+            await this._acquireSlot();
+            let _status = 0;
+            try {
             const response = await axios.get(this.generateTranslateURL(text, from, to), {
                 validateStatus: (status) => status < 500,
                 timeout: axios.defaults.timeout || 8000,
             });
+            _status = response.status;
 
             if (response.status === 200) {
                 let result = this.parseTranslateResult(response.data);
@@ -599,10 +629,11 @@ class GoogleTranslator {
                 this.fallBack();
                 return await this.updateTKK().then(translateOnce);
             }
-
+            } finally { this._releaseSlot(); }
+            const status = _status;
             throw {
                 errorType: "API_ERR",
-                errorCode: response.status,
+                errorCode: status,
                 errorMsg: "Translate failed.",
                 errorAct: {
                     api: "google",

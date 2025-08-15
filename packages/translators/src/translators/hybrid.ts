@@ -9,6 +9,7 @@ import BingTranslator from "./bing";
 import DeepLTranslator from "./deepl";
 import GoogleTranslator from "./google";
 import { LRUCache } from "../utils/lru";
+import { fnv1a32 } from "../utils/hash";
 
 export type HybridSupportedTranslators =
     | "BingTranslate"
@@ -178,7 +179,7 @@ class HybridTranslator {
         }
 
         // Normalize inputs to keep key stable
-        const key = `${from}|${to}|${text.length>512?text.slice(0,512):text}`;
+    const key = `H|${from}|${to}|${fnv1a32(text)}`;
 
         // Cache hit
         const cached = this.cache.get(key);
