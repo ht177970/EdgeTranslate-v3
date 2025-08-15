@@ -64,6 +64,21 @@ class HybridTranslator {
         );
 
         this.useConfig(config);
+
+        // Warm up Bing translator proactively to reduce first translation latency
+        this.warmUpTranslators();
+    }
+
+    /**
+     * Warm up translators in the background to reduce cold start latency
+     */
+    private async warmUpTranslators() {
+        // Start warming up Bing translator immediately
+        setTimeout(() => {
+            this.REAL_TRANSLATORS.BingTranslate.warmUp().catch(() => {
+                // Ignore warmup failures
+            });
+        }, 100); // Small delay to not block constructor
     }
 
     /**
@@ -253,6 +268,39 @@ class HybridTranslator {
      */
     async stopPronounce() {
         this.REAL_TRANSLATORS[this.MAIN_TRANSLATOR].stopPronounce();
+    }
+
+    /**
+     * Get performance statistics from all translators
+     */
+    getPerformanceStats() {
+        const stats: any = {
+            cache: {
+                size: this.cache.size(),
+                inflight: this.inflight.size
+            }
+        };
+
+        // Get Bing translator stats if available
+        if (this.REAL_TRANSLATORS.BingTranslate?.getPoolStats) {
+            stats.bing = this.REAL_TRANSLATORS.BingTranslate.getPoolStats();
+        }
+
+        return stats;
+    }
+
+    /**
+     * Cleanup all translator resources
+     */
+    async cleanup() {
+        // Clear hybrid cache
+        this.cache.clear();
+        this.inflight.clear();
+
+        // Cleanup individual translators
+        if (this.REAL_TRANSLATORS.BingTranslate?.cleanup) {
+            await this.REAL_TRANSLATORS.BingTranslate.cleanup();
+        }
     }
 }
 

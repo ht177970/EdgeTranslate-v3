@@ -89,28 +89,28 @@ function isPotentialPdfUrl(url) {
     if (/\.pdf($|[?#])/i.test(url)) return true;
 
     // 2. URL 경로에서 PDF 단서 찾기 (더 정확한 패턴)
-    if (/\/pdf\/[^\/]+/i.test(url)) return true; // /pdf/filename 형태
+    if (/\/pdf\/[^/]+/i.test(url)) return true; // /pdf/filename 형태
     if (/[?&][^=]*\.pdf/i.test(url)) return true; // 쿼리 파라미터에 .pdf
-    if (/\/download[^\/]*pdf/i.test(url)) return true; // download 경로 + pdf
-    if (/\/view[^\/]*pdf/i.test(url)) return true; // view 경로 + pdf
+    if (/\/download[^/]*pdf/i.test(url)) return true; // download 경로 + pdf
+    if (/\/view[^/]*pdf/i.test(url)) return true; // view 경로 + pdf
 
     // 3. 학술/문서 사이트 패턴 (일반화된 접근)
     if (/\/(papers?|documents?|files?|articles?|publications?)\//i.test(url)) {
         // 숫자나 특수 문자가 포함된 문서 ID 패턴, 하지만 너무 일반적인 단어는 제외
         const pathMatch = url.match(
-            /\/(papers?|documents?|files?|articles?|publications?)\/([^\/\?#]+)/i
+            /\/(papers?|documents?|files?|articles?|publications?)\/([^/?#]+)/i
         );
         if (pathMatch) {
             const docId = pathMatch[2];
             // 숫자, 하이픈, 언더스코어, 점이 포함되고 "info", "list", "about" 같은 일반 단어가 아닌 경우
-            if (/[\d\-_\.]/i.test(docId) && !/^(info|list|about|help|index|home)$/i.test(docId)) {
+            if (/[\d_.-]/i.test(docId) && !/^(info|list|about|help|index|home)$/i.test(docId)) {
                 return true;
             }
         }
     }
 
     // 4. 도메인별 특별 처리 (PDF.js의 알려진 패턴들)
-    const domain = url.match(/\/\/([^\/]+)/)?.[1]?.toLowerCase() || "";
+    const domain = url.match(/\/\/([^/]+)/)?.[1]?.toLowerCase() || "";
     if (domain.includes("arxiv") && /\/pdf\//i.test(url)) return true;
     if (domain.includes("researchgate") && (/\.pdf/i.test(url) || /\/pdf/i.test(url))) return true;
     if (domain.includes("ieee") && /\/pdf/i.test(url)) return true;

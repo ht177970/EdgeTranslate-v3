@@ -196,17 +196,31 @@ const createServiceWorkerAxios = (): AxiosInstance => {
     axiosReplacement.options = (url: string, config: ServiceWorkerAxiosRequestConfig = {}) =>
         axiosReplacement({ ...config, url, method: "OPTIONS" as Method });
 
-    // Add axios properties
+    // Add axios properties with connection optimization
     axiosReplacement.defaults = {
         headers: {
-            common: {},
-            get: {},
-            post: { "Content-Type": "application/json" },
-            put: { "Content-Type": "application/json" },
-            patch: { "Content-Type": "application/json" },
+            common: {
+                "Connection": "keep-alive",
+                "Keep-Alive": "timeout=30, max=100"
+            },
+            get: {
+                "Accept": "application/json, text/plain, */*"
+            },
+            post: { 
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*"
+            },
+            put: { 
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*"
+            },
+            patch: { 
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*"
+            },
         },
-        // Avoid long hangs on flaky networks
-        timeout: 8000,
+        // Optimized timeout for better performance
+        timeout: 6000,
         responseType: "json",
         baseURL: "",
         validateStatus: (status: number) => status >= 200 && status < 300,

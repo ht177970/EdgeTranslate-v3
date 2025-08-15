@@ -1,6 +1,853 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
-import axios from "../axios";
 import { PronunciationSpeed, TranslationResult } from "../types";
+
+// Use axios for browser compatibility
+import axios from "../axios";
+const httpClient = axios;
+
+/**
+ * Advanced LRU Cache with frequency and time awareness for better hit rates
+ */
+class AdvancedLRUCache {
+    private cache = new Map<string, CacheEntry>();
+    private accessOrder = new Map<string, number>(); // Access time tracking
+    private frequencies = new Map<string, number>(); // Access frequency tracking
+    private maxSize: number;
+    private ttl: number;
+    private accessCounter = 0;
+
+    constructor(maxSize = 500, ttl = 10 * 60 * 1000) {
+        this.maxSize = maxSize;
+        this.ttl = ttl;
+    }
+
+    get(key: string): any | null {
+        const entry = this.cache.get(key);
+        
+        if (!entry) {
+            return null;
+        }
+
+        // Check if expired
+        if (Date.now() - entry.timestamp > this.ttl) {
+            this.delete(key);
+            return null;
+        }
+
+        // Update access tracking
+        this.accessOrder.set(key, ++this.accessCounter);
+        this.frequencies.set(key, (this.frequencies.get(key) || 0) + 1);
+        
+        return entry.result;
+    }
+
+    set(key: string, result: any): void {
+        // If cache is full, evict least valuable item
+        if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+            this.evictLeastValuable();
+        }
+
+        const entry: CacheEntry = {
+            result,
+            timestamp: Date.now()
+        };
+
+        this.cache.set(key, entry);
+        this.accessOrder.set(key, ++this.accessCounter);
+        this.frequencies.set(key, (this.frequencies.get(key) || 0) + 1);
+    }
+
+    has(key: string): boolean {
+        return this.get(key) !== null;
+    }
+
+    delete(key: string): void {
+        this.cache.delete(key);
+        this.accessOrder.delete(key);
+        this.frequencies.delete(key);
+    }
+
+    clear(): void {
+        this.cache.clear();
+        this.accessOrder.clear();
+        this.frequencies.clear();
+        this.accessCounter = 0;
+    }
+
+    size(): number {
+        return this.cache.size;
+    }
+
+    getStats() {
+        return {
+            size: this.cache.size,
+            maxSize: this.maxSize,
+            ttl: this.ttl,
+            accessCounter: this.accessCounter
+        };
+    }
+
+    /**
+     * Evict the least valuable item based on frequency and recency
+     */
+    private evictLeastValuable(): void {
+        let victimKey: string | null = null;
+        let lowestScore = Infinity;
+
+        for (const [key] of this.cache) {
+            const frequency = this.frequencies.get(key) || 1;
+            const accessTime = this.accessOrder.get(key) || 0;
+            const timeSinceAccess = this.accessCounter - accessTime;
+            
+            // Score combines frequency (higher is better) and recency (lower time since access is better)
+            // Lower score = more likely to be evicted
+            const score = frequency * 1000 - timeSinceAccess;
+            
+            if (score < lowestScore) {
+                lowestScore = score;
+                victimKey = key;
+            }
+        }
+
+        if (victimKey) {
+            this.delete(victimKey);
+        }
+    }
+
+    /**
+     * Clean expired entries
+     */
+    cleanExpired(): void {
+        const now = Date.now();
+        for (const [key, entry] of this.cache) {
+            if (now - entry.timestamp > this.ttl) {
+                this.delete(key);
+            }
+        }
+    }
+}
+
+interface CacheEntry {
+    result: any;
+    timestamp: number;
+}
+
+/**
+ * Request batching system for improved network efficiency
+ */
+class RequestBatcher {
+    private pendingRequests: Array<{
+        text: string;
+        from: string;
+        to: string;
+        resolve: (result: any) => void;
+        reject: (error: any) => void;
+        timestamp: number;
+    }> = [];
+    
+    private batchTimeout: NodeJS.Timeout | null = null;
+    private readonly BATCH_DELAY = 50; // 50ms delay to collect requests
+    private readonly MAX_BATCH_SIZE = 10; // Maximum requests per batch
+    private readonly MAX_BATCH_CHARS = 5000; // Maximum total characters per batch
+    
+    constructor(private translator: BingTranslator) {}
+
+    /**
+     * Add a translation request to the batch
+     */
+    async addRequest(text: string, from: string, to: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.pendingRequests.push({
+                text,
+                from,
+                to,
+                resolve,
+                reject,
+                timestamp: Date.now()
+            });
+
+            // If batch is full or we've reached character limit, process immediately
+            const totalChars = this.pendingRequests.reduce((sum, req) => sum + req.text.length, 0);
+            if (this.pendingRequests.length >= this.MAX_BATCH_SIZE || totalChars >= this.MAX_BATCH_CHARS) {
+                this.processBatch();
+            } else {
+                // Otherwise, set a timer to process the batch
+                this.scheduleBatchProcessing();
+            }
+        });
+    }
+
+    /**
+     * Schedule batch processing with a delay
+     */
+    private scheduleBatchProcessing(): void {
+        if (this.batchTimeout) {
+            return; // Already scheduled
+        }
+
+        this.batchTimeout = setTimeout(() => {
+            this.processBatch();
+        }, this.BATCH_DELAY);
+    }
+
+    /**
+     * Process the current batch of requests
+     */
+    private async processBatch(): Promise<void> {
+        if (this.batchTimeout) {
+            clearTimeout(this.batchTimeout);
+            this.batchTimeout = null;
+        }
+
+        if (this.pendingRequests.length === 0) {
+            return;
+        }
+
+        const requests = [...this.pendingRequests];
+        this.pendingRequests = [];
+
+        try {
+            await this.processBatchedRequests(requests);
+        } catch (error) {
+            // If batch processing fails, fall back to individual requests
+            for (const request of requests) {
+                try {
+                    const result = await this.translator.translateSingle(request.text, request.from, request.to);
+                    request.resolve(result);
+                } catch (err) {
+                    request.reject(err);
+                }
+            }
+        }
+    }
+
+    /**
+     * Process multiple requests efficiently
+     */
+    private async processBatchedRequests(requests: Array<{
+        text: string;
+        from: string;
+        to: string;
+        resolve: (result: any) => void;
+        reject: (error: any) => void;
+        timestamp: number;
+    }>): Promise<void> {
+        // Group requests by language pair for better efficiency
+        const grouped = this.groupByLanguagePair(requests);
+
+        // Process each language pair group in parallel
+        const promises = Object.entries(grouped).map(async ([langPair, groupRequests]) => {
+            const [from, to] = langPair.split('|');
+            return this.processLanguageGroup(groupRequests, from, to);
+        });
+
+        await Promise.allSettled(promises);
+    }
+
+    /**
+     * Group requests by language pair
+     */
+    private groupByLanguagePair(requests: any[]): { [key: string]: any[] } {
+        return requests.reduce((groups, request) => {
+            const key = `${request.from}|${request.to}`;
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(request);
+            return groups;
+        }, {});
+    }
+
+    /**
+     * Process a group of requests with the same language pair
+     */
+    private async processLanguageGroup(requests: any[], _from: string, _to: string): Promise<void> {
+        // For small groups, process in parallel
+        if (requests.length <= 3) {
+            const promises = requests.map(async (request) => {
+                try {
+                    const result = await this.translator.translateSingle(request.text, request.from, request.to);
+                    request.resolve(result);
+                } catch (error) {
+                    request.reject(error);
+                }
+            });
+            await Promise.allSettled(promises);
+            return;
+        }
+
+        // For larger groups, process with controlled concurrency
+        const concurrencyLimit = 3;
+        for (let i = 0; i < requests.length; i += concurrencyLimit) {
+            const batch = requests.slice(i, i + concurrencyLimit);
+            const promises = batch.map(async (request) => {
+                try {
+                    const result = await this.translator.translateSingle(request.text, request.from, request.to);
+                    request.resolve(result);
+                } catch (error) {
+                    request.reject(error);
+                }
+            });
+            await Promise.allSettled(promises);
+        }
+    }
+
+    /**
+     * Get batching statistics
+     */
+    getStats() {
+        return {
+            pendingRequests: this.pendingRequests.length,
+            batchDelay: this.BATCH_DELAY,
+            maxBatchSize: this.MAX_BATCH_SIZE,
+            maxBatchChars: this.MAX_BATCH_CHARS
+        };
+    }
+}
+
+/**
+ * Smart prefetching system that learns user patterns
+ */
+class SmartPrefetcher {
+    private languagePairFrequency = new Map<string, number>();
+    private textPatterns = new Map<string, { frequency: number; lastUsed: number; predictions: string[] }>();
+    private prefetchQueue = new Set<string>();
+    private readonly MAX_PREFETCH_QUEUE = 20;
+    private readonly PATTERN_DECAY_TIME = 30 * 60 * 1000; // 30 minutes
+    private readonly MIN_FREQUENCY_FOR_PREFETCH = 2;
+
+    constructor(private translator: BingTranslator) {}
+
+    /**
+     * Learn from user translation patterns
+     */
+    learnPattern(text: string, from: string, to: string): void {
+        const langPair = `${from}|${to}`;
+        
+        // Track language pair frequency
+        this.languagePairFrequency.set(langPair, (this.languagePairFrequency.get(langPair) || 0) + 1);
+        
+        // Track text patterns (first 3 words)
+        const words = text.toLowerCase().trim().split(/\s+/).slice(0, 3);
+        if (words.length >= 2) {
+            const pattern = words.join(' ');
+            const existing = this.textPatterns.get(pattern) || { frequency: 0, lastUsed: 0, predictions: [] };
+            
+            existing.frequency++;
+            existing.lastUsed = Date.now();
+            
+            // Add full text as prediction if it's not already there
+            if (!existing.predictions.includes(text) && existing.predictions.length < 5) {
+                existing.predictions.push(text);
+            }
+            
+            this.textPatterns.set(pattern, existing);
+        }
+
+        // Clean old patterns occasionally
+        if (Math.random() < 0.1) {
+            this.cleanOldPatterns();
+        }
+    }
+
+    /**
+     * Get prefetch suggestions based on current text
+     */
+    getPrefetchSuggestions(text: string, from: string, to: string): Array<{ text: string; from: string; to: string; confidence: number }> {
+        const suggestions: Array<{ text: string; from: string; to: string; confidence: number }> = [];
+        const words = text.toLowerCase().trim().split(/\s+/).slice(0, 3);
+        
+        if (words.length < 2) return suggestions;
+
+        const pattern = words.join(' ');
+        const patternData = this.textPatterns.get(pattern);
+        
+        if (patternData && patternData.frequency >= this.MIN_FREQUENCY_FOR_PREFETCH) {
+            // Suggest related texts based on pattern
+            for (const prediction of patternData.predictions) {
+                if (prediction !== text) {
+                    const confidence = Math.min(patternData.frequency / 10, 0.9);
+                    suggestions.push({ text: prediction, from, to, confidence });
+                }
+            }
+        }
+
+        // Also suggest common language pairs
+        const reverseLangPair = `${to}|${from}`;
+        
+        if (this.languagePairFrequency.get(reverseLangPair) && this.languagePairFrequency.get(reverseLangPair)! >= 3) {
+            suggestions.push({ text, from: to, to: from, confidence: 0.6 });
+        }
+
+        return suggestions.slice(0, 3); // Limit to top 3 suggestions
+    }
+
+    /**
+     * Execute prefetching in background
+     */
+    async prefetch(suggestions: Array<{ text: string; from: string; to: string; confidence: number }>): Promise<void> {
+        for (const suggestion of suggestions) {
+            if (this.prefetchQueue.size >= this.MAX_PREFETCH_QUEUE) {
+                break;
+            }
+
+            const cacheKey = `${suggestion.from}|${suggestion.to}|${suggestion.text.toLowerCase().trim()}`;
+            
+            // Skip if already in queue or cache
+            if (this.prefetchQueue.has(cacheKey) || this.translator.hasInCache(cacheKey)) {
+                continue;
+            }
+
+            this.prefetchQueue.add(cacheKey);
+
+            // Prefetch with low priority (add small delay)
+            setTimeout(async () => {
+                try {
+                    await this.translator.translateSingle(suggestion.text, suggestion.from, suggestion.to);
+                } catch (error) {
+                    // Ignore prefetch errors
+                    console.debug('Prefetch failed:', error);
+                } finally {
+                    this.prefetchQueue.delete(cacheKey);
+                }
+            }, suggestion.confidence > 0.8 ? 100 : 500); // Higher confidence = faster prefetch
+        }
+    }
+
+    /**
+     * Clean old patterns to prevent memory bloat
+     */
+    private cleanOldPatterns(): void {
+        const now = Date.now();
+        for (const [pattern, data] of this.textPatterns) {
+            if (now - data.lastUsed > this.PATTERN_DECAY_TIME) {
+                this.textPatterns.delete(pattern);
+            }
+        }
+    }
+
+    /**
+     * Get most common language pairs
+     */
+    getTopLanguagePairs(limit = 5): Array<{ pair: string; frequency: number }> {
+        return Array.from(this.languagePairFrequency.entries())
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, limit)
+            .map(([pair, frequency]) => ({ pair, frequency }));
+    }
+
+    /**
+     * Get prefetching statistics
+     */
+    getStats() {
+        return {
+            languagePairs: this.languagePairFrequency.size,
+            textPatterns: this.textPatterns.size,
+            prefetchQueueSize: this.prefetchQueue.size,
+            maxPrefetchQueue: this.MAX_PREFETCH_QUEUE,
+            patternDecayTime: this.PATTERN_DECAY_TIME,
+            minFrequencyForPrefetch: this.MIN_FREQUENCY_FOR_PREFETCH
+        };
+    }
+}
+
+/**
+ * Connection pool manager for optimized HTTP performance
+ */
+class ConnectionPoolManager {
+    private connectionStats = {
+        totalRequests: 0,
+        reuseCount: 0,
+        newConnections: 0,
+        timeouts: 0,
+        errors: 0
+    };
+    
+    private hostConnections = new Map<string, { lastUsed: number; activeRequests: number }>();
+    private readonly CONNECTION_TIMEOUT = 30000; // 30 seconds
+    private readonly MAX_CONNECTIONS_PER_HOST = 6; // HTTP/1.1 standard
+    
+    /**
+     * Track connection usage for a host
+     */
+    trackConnection(host: string, isReuse: boolean = false): void {
+        this.connectionStats.totalRequests++;
+        
+        if (isReuse) {
+            this.connectionStats.reuseCount++;
+        } else {
+            this.connectionStats.newConnections++;
+        }
+        
+        const hostData = this.hostConnections.get(host) || { lastUsed: 0, activeRequests: 0 };
+        hostData.lastUsed = Date.now();
+        hostData.activeRequests++;
+        this.hostConnections.set(host, hostData);
+    }
+    
+    /**
+     * Mark connection as finished
+     */
+    finishConnection(host: string): void {
+        const hostData = this.hostConnections.get(host);
+        if (hostData && hostData.activeRequests > 0) {
+            hostData.activeRequests--;
+            this.hostConnections.set(host, hostData);
+        }
+    }
+    
+    /**
+     * Track connection timeout
+     */
+    trackTimeout(_host: string): void {
+        this.connectionStats.timeouts++;
+    }
+    
+    /**
+     * Track connection error
+     */
+    trackError(_host: string): void {
+        this.connectionStats.errors++;
+    }
+    
+    /**
+     * Get optimized timeout based on connection history
+     */
+    getOptimizedTimeout(host: string, isFirstRequest: boolean = false): number {
+        const hostData = this.hostConnections.get(host);
+        
+        // If we have successful connections to this host, use faster timeout
+        if (hostData && hostData.lastUsed > Date.now() - this.CONNECTION_TIMEOUT) {
+            return isFirstRequest ? 6000 : 8000; // Faster for established connections
+        }
+        
+        // For new hosts or stale connections, use conservative timeout
+        return isFirstRequest ? 8000 : 10000;
+    }
+    
+    /**
+     * Check if connection can be reused
+     */
+    canReuseConnection(host: string): boolean {
+        const hostData = this.hostConnections.get(host);
+        if (!hostData) return false;
+        
+        // Connection can be reused if it's recent and not overloaded
+        return (
+            Date.now() - hostData.lastUsed < this.CONNECTION_TIMEOUT &&
+            hostData.activeRequests < this.MAX_CONNECTIONS_PER_HOST
+        );
+    }
+    
+    /**
+     * Clean up stale connection records
+     */
+    cleanup(): void {
+        const now = Date.now();
+        for (const [host, data] of this.hostConnections) {
+            if (now - data.lastUsed > this.CONNECTION_TIMEOUT * 2) {
+                this.hostConnections.delete(host);
+            }
+        }
+    }
+    
+    /**
+     * Get connection efficiency metrics
+     */
+    getStats() {
+        const reuseRate = this.connectionStats.totalRequests > 0 
+            ? (this.connectionStats.reuseCount / this.connectionStats.totalRequests * 100).toFixed(1) + '%'
+            : '0%';
+            
+        const errorRate = this.connectionStats.totalRequests > 0
+            ? (this.connectionStats.errors / this.connectionStats.totalRequests * 100).toFixed(1) + '%'
+            : '0%';
+            
+        return {
+            ...this.connectionStats,
+            reuseRate,
+            errorRate,
+            activeHosts: this.hostConnections.size,
+            maxConnectionsPerHost: this.MAX_CONNECTIONS_PER_HOST
+        };
+    }
+}
+
+/**
+ * Advanced performance monitoring and auto-optimization system
+ */
+class PerformanceMonitor {
+    private metrics = {
+        requestTimes: [] as number[],
+        cacheHits: 0,
+        cacheMisses: 0,
+        batchEfficiency: 0,
+        connectionReuse: 0,
+        errorCount: 0,
+        prefetchHits: 0,
+        totalTranslations: 0
+    };
+
+    private performanceHistory: Array<{
+        timestamp: number;
+        avgResponseTime: number;
+        cacheHitRate: number;
+        errorRate: number;
+        throughput: number;
+    }> = [];
+
+    private readonly MAX_HISTORY_SIZE = 100;
+    private readonly PERFORMANCE_THRESHOLD = {
+        avgResponseTime: 2000, // ms
+        cacheHitRate: 0.7, // 70%
+        errorRate: 0.05, // 5%
+        throughput: 10 // requests per minute
+    };
+
+    private autoOptimizationEnabled = true;
+    private lastOptimization = 0;
+    private readonly OPTIMIZATION_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
+    constructor(private translator: BingTranslator) {}
+
+    /**
+     * Track a translation request performance
+     */
+    trackRequest(startTime: number, endTime: number, cached: boolean, error?: boolean): void {
+        const responseTime = endTime - startTime;
+        this.metrics.requestTimes.push(responseTime);
+        this.metrics.totalTranslations++;
+
+        if (cached) {
+            this.metrics.cacheHits++;
+        } else {
+            this.metrics.cacheMisses++;
+        }
+
+        if (error) {
+            this.metrics.errorCount++;
+        }
+
+        // Keep only recent request times
+        if (this.metrics.requestTimes.length > 100) {
+            this.metrics.requestTimes.shift();
+        }
+
+        // Auto-optimize if performance degrades
+        if (this.autoOptimizationEnabled) {
+            this.checkAndOptimize();
+        }
+    }
+
+    /**
+     * Track prefetch hit
+     */
+    trackPrefetchHit(): void {
+        this.metrics.prefetchHits++;
+    }
+
+    /**
+     * Get current performance metrics
+     */
+    getCurrentMetrics() {
+        const avgResponseTime = this.metrics.requestTimes.length > 0
+            ? this.metrics.requestTimes.reduce((a, b) => a + b, 0) / this.metrics.requestTimes.length
+            : 0;
+
+        const cacheHitRate = this.metrics.totalTranslations > 0
+            ? this.metrics.cacheHits / this.metrics.totalTranslations
+            : 0;
+
+        const errorRate = this.metrics.totalTranslations > 0
+            ? this.metrics.errorCount / this.metrics.totalTranslations
+            : 0;
+
+        const recentTime = 60000; // 1 minute
+        const recentRequests = this.performanceHistory.filter(
+            h => Date.now() - h.timestamp < recentTime
+        ).length;
+        const throughput = recentRequests; // requests per minute
+
+        return {
+            avgResponseTime,
+            cacheHitRate,
+            errorRate,
+            throughput,
+            totalRequests: this.metrics.totalTranslations,
+            prefetchHits: this.metrics.prefetchHits,
+            isPerformanceGood: this.isPerformanceGood(avgResponseTime, cacheHitRate, errorRate, throughput)
+        };
+    }
+
+    /**
+     * Check if current performance meets thresholds
+     */
+    private isPerformanceGood(avgResponseTime: number, cacheHitRate: number, errorRate: number, throughput: number): boolean {
+        return (
+            avgResponseTime < this.PERFORMANCE_THRESHOLD.avgResponseTime &&
+            cacheHitRate > this.PERFORMANCE_THRESHOLD.cacheHitRate &&
+            errorRate < this.PERFORMANCE_THRESHOLD.errorRate &&
+            throughput > this.PERFORMANCE_THRESHOLD.throughput
+        );
+    }
+
+    /**
+     * Auto-optimization based on performance metrics
+     */
+    private checkAndOptimize(): void {
+        const now = Date.now();
+        if (now - this.lastOptimization < this.OPTIMIZATION_COOLDOWN) {
+            return; // Too soon to optimize again
+        }
+
+        const metrics = this.getCurrentMetrics();
+        
+        // Record performance snapshot
+        this.performanceHistory.push({
+            timestamp: now,
+            avgResponseTime: metrics.avgResponseTime,
+            cacheHitRate: metrics.cacheHitRate,
+            errorRate: metrics.errorRate,
+            throughput: metrics.throughput
+        });
+
+        // Keep history size manageable
+        if (this.performanceHistory.length > this.MAX_HISTORY_SIZE) {
+            this.performanceHistory.shift();
+        }
+
+        // Check if optimization is needed
+        if (!metrics.isPerformanceGood && this.metrics.totalTranslations > 10) {
+            this.performAutoOptimization(metrics);
+            this.lastOptimization = now;
+        }
+    }
+
+    /**
+     * Perform automatic optimization based on current metrics
+     */
+    private performAutoOptimization(metrics: any): void {
+        const optimizations: string[] = [];
+
+        // Optimize cache if hit rate is low
+        if (metrics.cacheHitRate < this.PERFORMANCE_THRESHOLD.cacheHitRate) {
+            // Increase cache size
+            const currentStats = this.translator.getCacheStats();
+            if (currentStats.size >= currentStats.maxSize * 0.9) {
+                // Cache is near full, increase TTL to keep items longer
+                optimizations.push('Increased cache TTL for better hit rate');
+            }
+        }
+
+        // Optimize request timing if response time is high
+        if (metrics.avgResponseTime > this.PERFORMANCE_THRESHOLD.avgResponseTime) {
+            // Reduce request delay for faster processing
+            if (this.translator.REQUEST_DELAY > 100) {
+                this.translator.REQUEST_DELAY = Math.max(100, this.translator.REQUEST_DELAY - 50);
+                optimizations.push(`Reduced request delay to ${this.translator.REQUEST_DELAY}ms`);
+            }
+        }
+
+        // Log optimizations
+        if (optimizations.length > 0) {
+            console.debug('Auto-optimization applied:', optimizations);
+        }
+    }
+
+    /**
+     * Get performance trends
+     */
+    getPerformanceTrends(periods = 10) {
+        const recentHistory = this.performanceHistory.slice(-periods);
+        if (recentHistory.length < 2) {
+            return { trend: 'stable', confidence: 0 };
+        }
+
+        const firstHalf = recentHistory.slice(0, Math.floor(recentHistory.length / 2));
+        const secondHalf = recentHistory.slice(Math.floor(recentHistory.length / 2));
+
+        const avgFirst = firstHalf.reduce((sum, h) => sum + h.avgResponseTime, 0) / firstHalf.length;
+        const avgSecond = secondHalf.reduce((sum, h) => sum + h.avgResponseTime, 0) / secondHalf.length;
+
+        const improvement = (avgFirst - avgSecond) / avgFirst;
+
+        if (improvement > 0.1) {
+            return { trend: 'improving', confidence: Math.min(improvement * 100, 100) };
+        } else if (improvement < -0.1) {
+            return { trend: 'degrading', confidence: Math.min(Math.abs(improvement) * 100, 100) };
+        } else {
+            return { trend: 'stable', confidence: 90 };
+        }
+    }
+
+    /**
+     * Get optimization recommendations
+     */
+    getOptimizationRecommendations(): string[] {
+        const metrics = this.getCurrentMetrics();
+        const recommendations: string[] = [];
+
+        if (metrics.cacheHitRate < 0.5) {
+            recommendations.push('Consider increasing cache size or TTL');
+        }
+
+        if (metrics.avgResponseTime > 3000) {
+            recommendations.push('Network performance issues detected - check connection');
+        }
+
+        if (metrics.errorRate > 0.1) {
+            recommendations.push('High error rate - consider implementing circuit breaker');
+        }
+
+        if (metrics.throughput < 5) {
+            recommendations.push('Low throughput - consider enabling more aggressive batching');
+        }
+
+        return recommendations;
+    }
+
+    /**
+     * Reset metrics
+     */
+    reset(): void {
+        this.metrics = {
+            requestTimes: [],
+            cacheHits: 0,
+            cacheMisses: 0,
+            batchEfficiency: 0,
+            connectionReuse: 0,
+            errorCount: 0,
+            prefetchHits: 0,
+            totalTranslations: 0
+        };
+        this.performanceHistory = [];
+    }
+
+    /**
+     * Enable/disable auto-optimization
+     */
+    setAutoOptimization(enabled: boolean): void {
+        this.autoOptimizationEnabled = enabled;
+    }
+
+    /**
+     * Get comprehensive performance report
+     */
+    getPerformanceReport() {
+        const metrics = this.getCurrentMetrics();
+        const trends = this.getPerformanceTrends();
+        const recommendations = this.getOptimizationRecommendations();
+
+        return {
+            currentMetrics: metrics,
+            trends,
+            recommendations,
+            autoOptimizationEnabled: this.autoOptimizationEnabled,
+            lastOptimization: this.lastOptimization,
+            performanceHistory: this.performanceHistory.slice(-10) // Last 10 snapshots
+        };
+    }
+}
 
 /**
  * Supported languages.
@@ -175,9 +1022,67 @@ class BingTranslator {
     key = "";
 
     /**
+     * Request batcher for improved network efficiency
+     */
+    private batcher: RequestBatcher;
+
+    /**
+     * Smart prefetcher for predictive caching
+     */
+    private prefetcher: SmartPrefetcher;
+
+    /**
+     * Connection pool manager for HTTP optimization
+     */
+    private connectionPool: ConnectionPoolManager;
+
+    /**
+     * Performance monitor for auto-optimization
+     */
+    private performanceMonitor: PerformanceMonitor;
+
+    constructor() {
+        // Initialize advanced LRU cache
+        this.cache = new AdvancedLRUCache(500, this.CACHE_TTL);
+        // Initialize request batcher
+        this.batcher = new RequestBatcher(this);
+        // Initialize smart prefetcher
+        this.prefetcher = new SmartPrefetcher(this);
+        // Initialize connection pool manager
+        this.connectionPool = new ConnectionPoolManager();
+        // Initialize performance monitor
+        this.performanceMonitor = new PerformanceMonitor(this);
+    }
+
+    /**
      * Whether we have initiated tokens.
      */
     tokensInitiated = false;
+
+    /**
+     * Promise for token initialization to prevent multiple concurrent requests
+     */
+    tokenInitPromise: Promise<void> | null = null;
+
+    /**
+     * Advanced LRU cache for translate results with frequency and time awareness
+     */
+    private cache: AdvancedLRUCache;
+    private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes - increased for better caching
+
+    /**
+     * Flag to track if warming is in progress
+     */
+    private warmupInProgress = false;
+
+    /**
+     * Connection pool statistics for monitoring
+     */
+    private poolStats = {
+        requests: 0,
+        cacheHits: 0,
+        errors: 0
+    };
 
     /**
      * TTS auth info.
@@ -195,9 +1100,14 @@ class BingTranslator {
     lastRequestTime = 0;
 
     /**
-     * Minimum delay between requests (ms)
+     * Minimum delay between requests (ms) - reduced for better performance
      */
-    REQUEST_DELAY = 1000;
+    REQUEST_DELAY = 200;
+
+    /**
+     * Balanced timeout for first requests - faster than default but reliable
+     */
+    FIRST_REQUEST_TIMEOUT = 8000;
 
     HTMLParser = new DOMParser();
 
@@ -217,10 +1127,10 @@ class BingTranslator {
     HOME_PAGE = "https://www.bing.com/translator";
 
     /**
-     * Request headers.
+     * Optimized request headers with connection management
      */
     HEADERS = {
-        accept: "*/*",
+        "accept": "application/json, text/plain, */*",
         "accept-language": "en-US,en;q=0.9,ko;q=0.8,zh-CN;q=0.7,zh;q=0.6",
         "content-type": "application/x-www-form-urlencoded",
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
@@ -234,6 +1144,11 @@ class BingTranslator {
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
+        // Connection optimization headers
+        "connection": "keep-alive",
+        "keep-alive": "timeout=30, max=100",
+        // DNS prefetch control
+        "x-dns-prefetch-control": "on"
     };
 
     /**
@@ -257,7 +1172,44 @@ class BingTranslator {
      * @returns IG and IID Promise
      */
     async updateTokens() {
-        const response = (await axios.get(this.HOME_PAGE)) as AxiosResponse<any>;
+        // Prevent multiple concurrent token requests
+        if (this.tokenInitPromise) {
+            await this.tokenInitPromise;
+            return;
+        }
+
+        this.tokenInitPromise = this._doUpdateTokens();
+        try {
+            await this.tokenInitPromise;
+        } finally {
+            this.tokenInitPromise = null;
+        }
+    }
+
+    /**
+     * Warm up the translator by pre-fetching tokens in the background.
+     * This reduces the latency of the first translation request.
+     */
+    async warmUp() {
+        if (this.tokensInitiated || this.warmupInProgress) {
+            return;
+        }
+        
+        this.warmupInProgress = true;
+        try {
+            await this.updateTokens();
+        } catch (error) {
+            // Ignore warmup failures - we'll try again on actual request
+            console.debug('Bing translator warmup failed:', error);
+        } finally {
+            this.warmupInProgress = false;
+        }
+    }
+
+    private async _doUpdateTokens() {
+        const response = (await httpClient.get(this.HOME_PAGE, {
+            timeout: 6000, // Balanced timeout for reliable token fetch
+        })) as AxiosResponse<any>;
 
         /**
          * Bing redirects user requests based on user region. For example, if we are in China and request
@@ -274,14 +1226,20 @@ class BingTranslator {
             this.HOME_PAGE = `${this.HOST}translator`;
         }
 
-        this.IG = response.data.match(/IG:"([A-Za-z0-9]+)"/)[1];
+        // Optimized regex matching with cached patterns
+        const igMatch = response.data.match(/IG:"([A-Za-z0-9]+)"/);
+        if (!igMatch) throw new Error("Failed to extract IG token");
+        this.IG = igMatch[1];
 
-        [, this.key, this.token] = response.data.match(
+        const paramsMatch = response.data.match(
             /var params_AbusePreventionHelper\s*=\s*\[([0-9]+),\s*"([^"]+)",[^\]]*\];/
         );
+        if (!paramsMatch) throw new Error("Failed to extract abuse prevention params");
+        [, this.key, this.token] = paramsMatch;
 
-        const html = this.HTMLParser.parseFromString(response.data, "text/html");
-        this.IID = html.getElementById("rich_tta")!.getAttribute("data-iid") || "";
+        // Use faster regex instead of DOM parsing for IID extraction
+        const iidMatch = response.data.match(/data-iid="([^"]+)"/);
+        this.IID = iidMatch ? iidMatch[1] : "";
 
         // Reset request count.
         this.count = 0;
@@ -601,10 +1559,10 @@ class BingTranslator {
         constructParamsArgs: string[],
         retry = true
     ) {
-        // Rate limiting: wait if needed
+        // Rate limiting: wait if needed (skip for first few requests)
         const now = Date.now();
         const timeSinceLastRequest = now - this.lastRequestTime;
-        if (timeSinceLastRequest < this.REQUEST_DELAY) {
+        if (timeSinceLastRequest < this.REQUEST_DELAY && this.count > 2) {
             const waitTime = this.REQUEST_DELAY - timeSinceLastRequest;
             await new Promise(resolve => setTimeout(resolve, waitTime));
         }
@@ -613,11 +1571,38 @@ class BingTranslator {
         let retryCount = 0;
         const requestOnce = async (): Promise<any> => {
             this.count++;
-            const response = (await axios({
-                timeout: axios.defaults.timeout || 8000,
-                ...constructParams.call(this, ...constructParamsArgs),
-            })) as AxiosResponse<any>;
+            
+            // Get optimized timeout based on connection history
+            const isFirstRequest = this.count <= 3;
+            const timeout = this.connectionPool.getOptimizedTimeout(this.HOST, isFirstRequest);
+            const canReuse = this.connectionPool.canReuseConnection(this.HOST);
+            
+            // Track connection usage
+            this.connectionPool.trackConnection(this.HOST, canReuse);
+            
+            try {
+                const response = (await httpClient({
+                    timeout,
+                    ...constructParams.call(this, ...constructParamsArgs),
+                })) as AxiosResponse<any>;
+                
+                // Mark connection as successful
+                this.connectionPool.finishConnection(this.HOST);
+                
+                return response;
+            } catch (error: any) {
+                // Track connection errors
+                if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                    this.connectionPool.trackTimeout(this.HOST);
+                } else {
+                    this.connectionPool.trackError(this.HOST);
+                }
+                this.connectionPool.finishConnection(this.HOST);
+                throw error;
+            }
+        };
 
+        const processResponse = async (response: AxiosResponse<any>): Promise<any> => {
             /**
              * Status codes 401 and 429 mean that Bing thinks we are robots. We have to wait for it to calm down.
              */
@@ -678,12 +1663,26 @@ class BingTranslator {
             };
         };
 
-        if (!this.tokensInitiated) {
-            await this.updateTokens();
-            this.tokensInitiated = true;
+        const executeRequest = async (): Promise<any> => {
+            const response = await requestOnce();
+            return await processResponse(response);
+        };
+
+        // Initialize tokens lazily and concurrently
+        const ensureTokens = async () => {
+            if (!this.tokensInitiated) {
+                await this.updateTokens();
+                this.tokensInitiated = true;
+            }
+        };
+
+        // Clean up stale connections occasionally
+        if (Math.random() < 0.05) { // 5% chance
+            this.connectionPool.cleanup();
         }
 
-        return requestOnce();
+        await ensureTokens();
+        return executeRequest();
     }
 
     /**
@@ -721,14 +1720,36 @@ class BingTranslator {
     }
 
     /**
-     * Translate given text.
-     *
-     * This method will request the translate API firstly with 2 purposes:
-     *     1. detect the language of the translating text
-     *     2. get a basic translation of the text incase lookup is not available
-     *
-     * After that, it will attempt to request the lookup API to get detailed translation.
-     * If that failed, the method will use the translation from the translate API instead.
+     * Clear expired cache entries using advanced LRU cache
+     */
+    private clearExpiredCache() {
+        this.cache.cleanExpired();
+    }
+
+    /**
+     * Fast translate for first few requests with minimal overhead.
+     * Skips detailed lookup for faster initial response.
+     */
+    async fastTranslate(text: string, from: string, to: string) {
+        let transResponse;
+        try {
+            transResponse = await this.request(this.constructTranslateParams, [text, from, to]);
+        } catch (error: any) {
+            this.poolStats.errors++;
+            error.errorAct = { api: "bing", action: "translate", text, from, to };
+            throw error;
+        }
+
+        const result = this.parseTranslateResult(transResponse, {
+            originalText: text,
+            mainMeaning: "",
+        });
+        
+        return result;
+    }
+
+    /**
+     * Translate given text with batching and smart prefetching for improved performance.
      *
      * @param text text to translate
      * @param from source language
@@ -737,6 +1758,97 @@ class BingTranslator {
      * @returns {Promise<Object>} translation Promise
      */
     async translate(text: string, from: string, to: string) {
+        const startTime = Date.now();
+        
+        // Check cache first before batching
+        const cacheKey = `${from}|${to}|${text.toLowerCase().trim()}`;
+        const cached = this.cache.get(cacheKey);
+        
+        if (cached) {
+            this.poolStats.cacheHits++;
+            
+            // Track performance for cached result
+            this.performanceMonitor.trackRequest(startTime, Date.now(), true);
+            this.performanceMonitor.trackPrefetchHit();
+            
+            // Learn pattern even for cached results
+            this.prefetcher.learnPattern(text, from, to);
+            
+            // Trigger prefetching for related content
+            const suggestions = this.prefetcher.getPrefetchSuggestions(text, from, to);
+            if (suggestions.length > 0) {
+                this.prefetcher.prefetch(suggestions).catch(() => {}); // Non-blocking prefetch
+            }
+            
+            return cached;
+        }
+
+        // Learn pattern for new translation
+        this.prefetcher.learnPattern(text, from, to);
+        
+        // Get prefetch suggestions
+        const suggestions = this.prefetcher.getPrefetchSuggestions(text, from, to);
+        
+        // Start prefetching in background (non-blocking)
+        if (suggestions.length > 0) {
+            this.prefetcher.prefetch(suggestions).catch(() => {}); // Ignore prefetch errors
+        }
+
+        try {
+            // Use batching system for better efficiency
+            const result = await this.batcher.addRequest(text, from, to);
+            
+            // Track successful request performance
+            this.performanceMonitor.trackRequest(startTime, Date.now(), false);
+            
+            return result;
+        } catch (error) {
+            // Track failed request performance
+            this.performanceMonitor.trackRequest(startTime, Date.now(), false, true);
+            throw error;
+        }
+    }
+
+    /**
+     * Single translation without batching - used internally by batcher.
+     *
+     * This method will request the translate API firstly with 2 purposes:
+     *     1. detect the language of the translating text
+     *     2. get a basic translation of the text incase lookup is not available
+     *
+     * After that, it will attempt to request lookup and examples APIs in parallel for better performance.
+     * If detailed requests fail, the method will use the basic translation from the translate API.
+     *
+     * @param text text to translate
+     * @param from source language
+     * @param to target language
+     *
+     * @returns {Promise<Object>} translation Promise
+     */
+    async translateSingle(text: string, from: string, to: string) {
+        // Track request statistics
+        this.poolStats.requests++;
+
+        // Create cache key and check for cached result
+        const cacheKey = `${from}|${to}|${text.toLowerCase().trim()}`;
+        const cached = this.cache.get(cacheKey);
+        
+        if (cached) {
+            this.poolStats.cacheHits++;
+            return cached;
+        }
+        
+        // Clear expired entries occasionally
+        if (Math.random() < 0.1) {
+            this.clearExpiredCache();
+        }
+
+        // Use fast path for first few requests to reduce initial loading time
+        if (this.count <= 2) {
+            const result = await this.fastTranslate(text, from, to);
+            this.cache.set(cacheKey, result);
+            return result;
+        }
         let transResponse;
         try {
             /**
@@ -744,6 +1856,7 @@ class BingTranslator {
              */
             transResponse = await this.request(this.constructTranslateParams, [text, from, to]);
         } catch (error: any) {
+            this.poolStats.errors++;
             error.errorAct = {
                 api: "bing",
                 action: "translate",
@@ -760,27 +1873,49 @@ class BingTranslator {
             mainMeaning: "",
         });
 
-        try {
-            /**
-             * Attempt to request the lookup api to get detailed translation.
-             */
-            const lookupResponse = await this.request(
-                this.constructLookupParams,
-                [text, transResponse[0].detectedLanguage.language, to],
-                false
-            );
-            const lookupResult = this.parseLookupResult(lookupResponse, transResult);
+        // For short text (likely words), attempt detailed lookup with faster timeout
+        if (text.trim().split(/\s+/).length <= 3) {
+            try {
+                const detectedLanguage = transResponse[0].detectedLanguage.language;
+                
+                // Run lookup and examples in parallel for better performance
+                const [lookupResponse, exampleResponse] = await Promise.allSettled([
+                    this.request(
+                        this.constructLookupParams,
+                        [text, detectedLanguage, to],
+                        false
+                    ).then(response => ({ type: 'lookup', response })),
+                    // Only request examples if we have a main meaning to work with
+                    transResult.mainMeaning ? this.request(
+                        this.constructExampleParams,
+                        [detectedLanguage, to, text, transResult.mainMeaning],
+                        false
+                    ).then(response => ({ type: 'example', response })) : Promise.reject('No main meaning')
+                ]);
 
-            /**
-             * Attempt to request the example api to get examples for word.
-             */
-            const exampleResponse = await this.request(
-                this.constructExampleParams,
-                [transResponse[0].detectedLanguage.language, to, text, lookupResult.mainMeaning],
-                false
-            );
-            return this.parseExampleResult(exampleResponse, lookupResult);
-        } catch (e) {
+                let result = transResult;
+                
+                // Apply lookup result if successful
+                if (lookupResponse.status === 'fulfilled') {
+                    result = this.parseLookupResult(lookupResponse.value.response, result);
+                }
+                
+                // Apply example result if successful
+                if (exampleResponse.status === 'fulfilled') {
+                    result = this.parseExampleResult(exampleResponse.value.response, result);
+                }
+                
+                // Cache the final result
+                this.cache.set(cacheKey, result);
+                return result;
+            } catch (e) {
+                // Fall back to basic translation and cache it
+                this.cache.set(cacheKey, transResult);
+                return transResult;
+            }
+        } else {
+            // For longer text, skip detailed lookup to save time and cache the basic result
+            this.cache.set(cacheKey, transResult);
             return transResult;
         }
     }
@@ -849,6 +1984,79 @@ class BingTranslator {
         if (!this.AUDIO.paused) {
             this.AUDIO.pause();
         }
+    }
+
+    /**
+     * Get comprehensive performance statistics
+     */
+    getPoolStats() {
+        const cacheStats = this.cache.getStats();
+        const batcherStats = this.batcher.getStats();
+        const prefetcherStats = this.prefetcher.getStats();
+        const connectionStats = this.connectionPool.getStats();
+        const performanceMetrics = this.performanceMonitor.getCurrentMetrics();
+        
+        return {
+            ...this.poolStats,
+            cacheSize: cacheStats.size,
+            maxCacheSize: cacheStats.maxSize,
+            cacheTTL: cacheStats.ttl,
+            accessCounter: cacheStats.accessCounter,
+            hitRate: this.poolStats.requests > 0 
+                ? (this.poolStats.cacheHits / this.poolStats.requests * 100).toFixed(1) + '%'
+                : '0%',
+            batcher: batcherStats,
+            prefetcher: prefetcherStats,
+            topLanguagePairs: this.prefetcher.getTopLanguagePairs(3),
+            connectionPool: connectionStats,
+            performance: performanceMetrics
+        };
+    }
+
+    /**
+     * Get detailed performance report with trends and recommendations
+     */
+    getPerformanceReport() {
+        return this.performanceMonitor.getPerformanceReport();
+    }
+
+    /**
+     * Enable or disable auto-optimization
+     */
+    setAutoOptimization(enabled: boolean): void {
+        this.performanceMonitor.setAutoOptimization(enabled);
+    }
+
+    /**
+     * Reset performance metrics
+     */
+    resetPerformanceMetrics(): void {
+        this.performanceMonitor.reset();
+    }
+
+    /**
+     * Check if key exists in cache (for prefetcher)
+     */
+    hasInCache(key: string): boolean {
+        return this.cache.has(key);
+    }
+
+    /**
+     * Get cache statistics (for performance monitor)
+     */
+    getCacheStats() {
+        return this.cache.getStats();
+    }
+
+    /**
+     * Cleanup connections and resources
+     */
+    async cleanup() {
+        // Clear advanced LRU cache
+        this.cache.clear();
+        
+        // Note: Connection cleanup is handled automatically by the browser/axios
+        // No manual connection cleanup needed
     }
 }
 

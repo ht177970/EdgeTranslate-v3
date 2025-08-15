@@ -297,7 +297,7 @@ function normalizePdfSelectionText(input) {
     s = s.replace(/\u3000/g, " ");
 
     // 하이픈 줄바꿈 결합(영문 위주 안전 규칙)
-    s = s.replace(/([A-Za-z])\-\n([A-Za-z])/g, "$1$2");
+    s = s.replace(/([A-Za-z])-\n([A-Za-z])/g, "$1$2");
 
     // 단락 구분 토큰 보존
     const PARA = "\u0001\u0001__ET_PARA__\u0001\u0001";
@@ -318,11 +318,11 @@ function normalizePdfSelectionText(input) {
         // 여는 괄호/따옴표 뒤 공백 제거, 닫는 괄호/따옴표/문장부호 앞 공백 제거 (언어 비의존)
         s = s
             .replace(
-                /([\(\[\{\u3008\u300A\u300C\u300E\u3010\uFF08\uFF3B\uFF5B\u201C\u2018])\s+/g,
+                /([([{\u3008\u300A\u300C\u300E\u3010\uFF08\uFF3B\uFF5B\u201C\u2018])\s+/g,
                 "$1"
             )
             .replace(
-                /\s+([\)\]\}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u2019\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g,
+                /\s+([)\]}\u3009\u300B\u300D\u300F\u3011\uFF09\uFF3D\uFF5D\u201D\u2019\u3002\uFF0C\uFF1A\uFF1B\uFF1F\uFF01])/g,
                 "$1"
             );
     }

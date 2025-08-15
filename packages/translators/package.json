@@ -18,6 +18,9 @@
     "unpkg": "dist/translators.iife.js",
     "module": "./dist/translators.es.js",
     "types": "./dist/types/index.d.ts",
+    "dependencies": {
+        "undici": "^6.20.1"
+    },
     "devDependencies": {
         "@types/chrome": "^0.0.190",
         "@types/jest": "^28.1.3",
