@@ -67,12 +67,24 @@ try {
     const sourceParam = params.get('source');
 
     // If we're reloading with a blob: URL, rehydrate it from original source when available
+    // Keep track of created blob URLs to revoke later
+    const createdBlobUrls = (window.__etCreatedBlobUrls ||= new Set());
+    window.addEventListener('unload', () => {
+      try {
+        for (const u of createdBlobUrls) {
+          try { URL.revokeObjectURL(u); } catch {}
+        }
+        createdBlobUrls.clear();
+      } catch {}
+    }, { once: true });
+
     if (isBlobUrl && sourceParam) {
       try {
         const original = decodeURIComponent(sourceParam);
         const res = await fetch(original);
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
+        try { createdBlobUrls.add(blobUrl); } catch {}
         params.set('file', encodeURIComponent(blobUrl));
         history.replaceState(null, '', urlObj.pathname + '?' + params.toString() + urlObj.hash);
       } catch (e) {
@@ -84,6 +96,7 @@ try {
         const res = await fetch(target.href);
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
+        try { createdBlobUrls.add(blobUrl); } catch {}
         // Preserve original URL for refresh recovery
         params.set('source', encodeURIComponent(target.href));
         params.set('file', encodeURIComponent(blobUrl));

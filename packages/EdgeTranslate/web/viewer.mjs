@@ -16207,59 +16207,71 @@ const PDFViewerApplication = {
     });
   },
   async _inferTitleFromFirstPage(pdfDocument) {
+    let page = null;
     try {
-      const page = await pdfDocument.getPage(1);
+      page = await pdfDocument.getPage(1);
+      // Limit processing to top area and cap items to reduce CPU/memory.
+      const viewport = page.getViewport({ scale: 1 });
+      const topCutoff = viewport?.height ? viewport.height * 0.65 : null; // top ~35% region
       const content = await page.getTextContent({ includeMarkedContent: false });
-      if (!content || !content.items?.length) return null;
+      const items = content?.items || [];
+      if (!items.length) return null;
 
-      // Group text by approximate line (y coordinate), estimate font size from transform matrix.
-      const lines = new Map(); // key: rounded y, value: { textParts: [], maxSize: number, y: number }
-      for (const item of content.items) {
+      const MAX_ITEMS = 800; // hard cap to avoid pathological PDFs
+      const lines = new Map(); // yKey -> { textParts, maxSize, y }
+      let processed = 0;
+      for (const item of items) {
+        if (++processed > MAX_ITEMS) break;
         const str = (item.str || "").trim();
         if (!str) continue;
         const tr = item.transform || item.textMatrix || [1, 0, 0, 1, 0, 0];
-        const fontSize = Math.max(Math.abs(tr[0] || 0), Math.abs(tr[3] || 0));
-        const y = (tr[5] || 0);
-        const yKey = Math.round(y / 2) * 2; // cluster nearby baselines (~2px tolerance)
+        const y = tr[5] || 0;
+        if (topCutoff != null && y < topCutoff) continue; // focus on top of page
+        const a = Math.abs(tr[0] || 0), d = Math.abs(tr[3] || 0);
+        const fontSize = a > d ? a : d;
+        const yKey = Math.round(y / 2) * 2; // cluster baselines (~2px)
         let line = lines.get(yKey);
-        if (!line) { line = { textParts: [], maxSize: 0, y: y }; lines.set(yKey, line); }
-        line.textParts.push(str);
-        if (fontSize > line.maxSize) line.maxSize = fontSize;
-        if (y > line.y) line.y = y;
+        if (!line) { line = { textParts: [str], maxSize: fontSize, y }; lines.set(yKey, line); }
+        else {
+          line.textParts.push(str);
+          if (fontSize > line.maxSize) line.maxSize = fontSize;
+          if (y > line.y) line.y = y;
+        }
       }
-      if (lines.size === 0) return null;
+      // Help GC
+      try { content.items = null; } catch {}
 
-      // Build candidate lines
+      if (lines.size === 0) return null;
+      const reSection = /^(abstract|introduction|contents|목차)$/i;
+      const reNoise = /\b(doi|http|www\.|arxiv|issn|isbn)\b/i;
+      const reAlpha = /[^A-Za-z가-힣一-龥ぁ-んァ-ヶ]/g;
+
       const candidates = [];
       for (const [, line] of lines) {
         const text = line.textParts.join(" ").replace(/\s+/g, " ").trim();
-        if (!text) continue;
-        // Exclude generic non-title lines
-        if (/^(abstract|introduction|contents|목차)$/i.test(text)) continue;
-        if (/\b(doi|http|www\.|arxiv|issn|isbn)\b/i.test(text)) continue;
-        // Prefer reasonably long and letter-rich strings
-        const alphaRatio = (text.replace(/[^A-Za-z가-힣一-龥ぁ-んァ-ヶ]/g, "").length) / Math.max(1, text.length);
+        if (!text || reSection.test(text) || reNoise.test(text)) continue;
+        const alphaCount = text.replace(reAlpha, "").length;
+        const alphaRatio = alphaCount / Math.max(1, text.length);
         if (text.length < 8 || alphaRatio < 0.3) continue;
         candidates.push({ text, size: line.maxSize, y: line.y });
       }
       if (!candidates.length) return null;
 
-      // Score: larger font and closer to top (higher y in PDF coords)
-      const maxSize = Math.max(...candidates.map(c => c.size));
-      const maxY = Math.max(...candidates.map(c => c.y));
-      candidates.forEach(c => {
+      let maxSize = 0, maxY = 0;
+      for (const c of candidates) { if (c.size > maxSize) maxSize = c.size; if (c.y > maxY) maxY = c.y; }
+      for (const c of candidates) {
         const sizeScore = c.size / (maxSize || 1);
         const posScore = c.y / (maxY || 1);
         c.score = sizeScore * 0.7 + posScore * 0.3;
-      });
+      }
       candidates.sort((a, b) => b.score - a.score);
       const best = candidates[0]?.text;
       if (!best) return null;
-
-      // Trim overly long titles, keep reasonable length
       return best.length > 180 ? best.slice(0, 177).trimEnd() + "…" : best;
     } catch {
       return null;
+    } finally {
+      try { page?.cleanup?.(); } catch {}
     }
   },
   async _initializePageLabels(pdfDocument) {
