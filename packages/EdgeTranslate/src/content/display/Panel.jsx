@@ -213,6 +213,8 @@ export default function ResultPanel() {
     // 기억된 부동 패널 위치(사용자가 드래그로 이동한 경우)
     const lastFloatingPosRef = useRef(null); // { x: number, y: number }
     const userMovedRef = useRef(false);
+    // 마지막 앵커(선택된 단어) 기준 좌표 기억 (캐시 히트 시 position 누락 대비)
+    const lastAnchorPosRef = useRef(null); // [x, y]
 
     // store the display type("floating"|"fixed")
     const displaySettingRef = useRef({
@@ -434,6 +436,9 @@ export default function ResultPanel() {
             if (checkTimestamp(detail.timestamp)) {
                 // cache translation text.
                 window.translateResult.originalText = detail.text;
+                if (detail.position && Array.isArray(detail.position)) {
+                    lastAnchorPosRef.current = [detail.position[0], detail.position[1]];
+                }
                 setOpen(true);
                 setContentType("LOADING");
                 setContent(detail);
@@ -443,6 +448,9 @@ export default function ResultPanel() {
         channel.on("translating_finished", (detail) => {
             if (checkTimestamp(detail.timestamp)) {
                 window.translateResult = detail;
+                if (detail.position && Array.isArray(detail.position)) {
+                    lastAnchorPosRef.current = [detail.position[0], detail.position[1]];
+                }
                 setOpen(true);
                 setContentType("RESULT");
                 setContent(detail);
@@ -451,6 +459,9 @@ export default function ResultPanel() {
 
         channel.on("translating_error", (detail) => {
             if (checkTimestamp(detail.timestamp)) {
+                if (detail.position && Array.isArray(detail.position)) {
+                    lastAnchorPosRef.current = [detail.position[0], detail.position[1]];
+                }
                 setContentType("ERROR");
                 setContent(detail);
             }
@@ -688,11 +699,39 @@ export default function ResultPanel() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    /* Fit the floating panel to the content size after the content is updated. */
+    /* 콘텐츠 타입 변경 후: 높이 조정 + (필요 시) 앵커 기준 재배치 */
     useEffect(() => {
-        if (displaySettingRef.current.type === "floating")
-            // The panel doesn't have to fit the loading animation so the delay won't be necessary.
+        if (displaySettingRef.current.type === "floating") {
             setTimeout(showFloatingPanel, contentType === "LOADING" ? 0 : 100);
+            // 사용자가 직접 옮기지 않았고, 앵커가 있다면 재배치
+            if (!userMovedRef.current && moveablePanelRef.current) {
+                const width = displaySettingRef.current.floatingData.width * window.innerWidth;
+                const height = displaySettingRef.current.floatingData.height * window.innerHeight;
+                let base = null;
+                if (contentRef.current.position && Array.isArray(contentRef.current.position)) {
+                    base = [contentRef.current.position[0], contentRef.current.position[1]];
+                } else if (lastAnchorPosRef.current) {
+                    base = [lastAnchorPosRef.current[0], lastAnchorPosRef.current[1]];
+                }
+                if (base) {
+                    const XBias = 20,
+                        YBias = 20,
+                        threshold = height / 4;
+                    let position = [base[0], base[1]];
+                    if (position[0] + width > window.innerWidth)
+                        position[0] = position[0] - width - XBias;
+                    if (position[1] + height > window.innerHeight + threshold) {
+                        let newPosition1 = position[1] - height - YBias + threshold;
+                        position[1] = newPosition1 < 0 ? 0 : newPosition1;
+                    }
+                    position = [position[0] + XBias, position[1] + YBias];
+                    moveablePanelRef.current.request("draggable", {
+                        x: position[0],
+                        y: position[1],
+                    });
+                }
+            }
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [contentType]);
 
@@ -722,10 +761,8 @@ export default function ResultPanel() {
             let width = displaySettingRef.current.floatingData.width * window.innerWidth;
             let height = displaySettingRef.current.floatingData.height * window.innerHeight;
 
-            // 사용자가 이전에 이동한 위치가 있으면 그 위치를 우선 사용
-            if (userMovedRef.current && lastFloatingPosRef.current) {
-                position = [lastFloatingPosRef.current.x, lastFloatingPosRef.current.y];
-            } else if (contentRef.current.position) {
+            // 위치 우선순위: 현재 position -> 마지막 앵커 -> 마지막 부동 -> 기본
+            if (contentRef.current.position) {
                 /* Adjust the position of result panel. Avoid to beyond the range of page */
                 const XBias = 20,
                     YBias = 20,
@@ -743,6 +780,21 @@ export default function ResultPanel() {
                     position[1] = newPosition1 < 0 ? 0 : newPosition1;
                 }
                 position = [position[0] + XBias, position[1] + YBias];
+            } else if (lastAnchorPosRef.current) {
+                const XBias = 20,
+                    YBias = 20,
+                    threshold = height / 4;
+                position = [lastAnchorPosRef.current[0], lastAnchorPosRef.current[1]];
+                if (position[0] + width > window.innerWidth) {
+                    position[0] = position[0] - width - XBias;
+                }
+                if (position[1] + height > window.innerHeight + threshold) {
+                    let newPosition1 = position[1] - height - YBias + threshold;
+                    position[1] = newPosition1 < 0 ? 0 : newPosition1;
+                }
+                position = [position[0] + XBias, position[1] + YBias];
+            } else if (userMovedRef.current && lastFloatingPosRef.current) {
+                position = [lastFloatingPosRef.current.x, lastFloatingPosRef.current.y];
             } else {
                 position = [
                     (1 - displaySettingRef.current.floatingData.width) * window.innerWidth -
