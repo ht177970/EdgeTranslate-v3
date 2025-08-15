@@ -210,6 +210,10 @@ export default function ResultPanel() {
     const moveablePanelRef = useRef(null);
     const simplebarRef = useRef();
 
+    // 기억된 부동 패널 위치(사용자가 드래그로 이동한 경우)
+    const lastFloatingPosRef = useRef(null); // { x: number, y: number }
+    const userMovedRef = useRef(false);
+
     // store the display type("floating"|"fixed")
     const displaySettingRef = useRef({
         type: "floating",
@@ -520,6 +524,11 @@ export default function ResultPanel() {
             moveablePanelRef.current = null;
             setMoveableReady(false);
 
+            // 패널을 닫을 때 임시 위치 기억은 유지(다음 열기에 사용),
+            // 필요시 완전 초기화를 원하면 아래 주석을 해제하세요.
+            // lastFloatingPosRef.current = null;
+            // userMovedRef.current = false;
+
             // Tell select.js that the result panel has been removed.
             window.isDisplayingResult = false;
 
@@ -578,9 +587,17 @@ export default function ResultPanel() {
 
                 /* Change the display type of result panel */
                 if (inputEvent && displaySettingRef.current.type === "floating") {
+                    // 사용자가 이동한 위치를 기억
+                    if (Array.isArray(translate) && translate.length === 2) {
+                        lastFloatingPosRef.current = { x: translate[0], y: translate[1] };
+                        userMovedRef.current = true;
+                    }
                     if (floatingToFixed) {
                         displaySettingRef.current.fixedData.position = fixedDirection;
                         displaySettingRef.current.type = "fixed";
+                        // 고정 모드로 전환 시 부동 위치는 사용하지 않음
+                        // lastFloatingPosRef.current = null;
+                        // userMovedRef.current = false;
                         // remove the highlight part
                         setHighlight({
                             show: false,
@@ -641,6 +658,15 @@ export default function ResultPanel() {
                     if (displaySettingRef.current.type === "fixed" && resizePageFlag.current) {
                         document.body.style.width = `${(1 - width / window.innerWidth) * 100}%`;
                     }
+                    // 부동 모드에서 리사이즈 시 현재 위치도 기억
+                    if (
+                        displaySettingRef.current.type === "floating" &&
+                        Array.isArray(translate) &&
+                        translate.length === 2
+                    ) {
+                        lastFloatingPosRef.current = { x: translate[0], y: translate[1] };
+                        userMovedRef.current = true;
+                    }
                 }
             })
             .on("resizeEnd", ({ translate, width, height, inputEvent, target }) => {
@@ -696,7 +722,10 @@ export default function ResultPanel() {
             let width = displaySettingRef.current.floatingData.width * window.innerWidth;
             let height = displaySettingRef.current.floatingData.height * window.innerHeight;
 
-            if (contentRef.current.position) {
+            // 사용자가 이전에 이동한 위치가 있으면 그 위치를 우선 사용
+            if (userMovedRef.current && lastFloatingPosRef.current) {
+                position = [lastFloatingPosRef.current.x, lastFloatingPosRef.current.y];
+            } else if (contentRef.current.position) {
                 /* Adjust the position of result panel. Avoid to beyond the range of page */
                 const XBias = 20,
                     YBias = 20,
