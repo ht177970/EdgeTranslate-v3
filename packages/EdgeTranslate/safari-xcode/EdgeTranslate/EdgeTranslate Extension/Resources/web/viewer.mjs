@@ -16180,6 +16180,13 @@ const PDFViewerApplication = {
       this.setTitle(`${pdfTitle} - ${this._contentDispositionFilename || this._title}`);
     } else if (this._contentDispositionFilename) {
       this.setTitle(this._contentDispositionFilename);
+    } else {
+      try {
+        const inferred = await this._inferTitleFromFirstPage(pdfDocument);
+        if (inferred) {
+          this.setTitle(inferred);
+        }
+      } catch {}
     }
     if (info.IsXFAPresent && !info.IsAcroFormPresent && !pdfDocument.isPureXfa) {
       if (pdfDocument.loadingParams.enableXfa) {
@@ -16196,6 +16203,52 @@ const PDFViewerApplication = {
     this.eventBus.dispatch("metadataloaded", {
       source: this
     });
+  },
+  async _inferTitleFromFirstPage(pdfDocument) {
+    try {
+      const page = await pdfDocument.getPage(1);
+      const content = await page.getTextContent({ includeMarkedContent: false });
+      if (!content || !content.items?.length) return null;
+      const lines = new Map();
+      for (const item of content.items) {
+        const str = (item.str || "").trim();
+        if (!str) continue;
+        const tr = item.transform || item.textMatrix || [1, 0, 0, 1, 0, 0];
+        const fontSize = Math.max(Math.abs(tr[0] || 0), Math.abs(tr[3] || 0));
+        const y = (tr[5] || 0);
+        const yKey = Math.round(y / 2) * 2;
+        let line = lines.get(yKey);
+        if (!line) { line = { textParts: [], maxSize: 0, y: y }; lines.set(yKey, line); }
+        line.textParts.push(str);
+        if (fontSize > line.maxSize) line.maxSize = fontSize;
+        if (y > line.y) line.y = y;
+      }
+      if (lines.size === 0) return null;
+      const candidates = [];
+      for (const [, line] of lines) {
+        const text = line.textParts.join(" ").replace(/\s+/g, " ").trim();
+        if (!text) continue;
+        if (/^(abstract|introduction|contents|목차)$/i.test(text)) continue;
+        if (/\b(doi|http|www\.|arxiv|issn|isbn)\b/i.test(text)) continue;
+        const alphaRatio = (text.replace(/[^A-Za-z가-힣一-龥ぁ-んァ-ヶ]/g, "").length) / Math.max(1, text.length);
+        if (text.length < 8 || alphaRatio < 0.3) continue;
+        candidates.push({ text, size: line.maxSize, y: line.y });
+      }
+      if (!candidates.length) return null;
+      const maxSize = Math.max(...candidates.map(c => c.size));
+      const maxY = Math.max(...candidates.map(c => c.y));
+      candidates.forEach(c => {
+        const sizeScore = c.size / (maxSize || 1);
+        const posScore = c.y / (maxY || 1);
+        c.score = sizeScore * 0.7 + posScore * 0.3;
+      });
+      candidates.sort((a, b) => b.score - a.score);
+      const best = candidates[0]?.text;
+      if (!best) return null;
+      return best.length > 180 ? best.slice(0, 177).trimEnd() + "…" : best;
+    } catch {
+      return null;
+    }
   },
   async _initializePageLabels(pdfDocument) {
     const labels = await pdfDocument.getPageLabels();
