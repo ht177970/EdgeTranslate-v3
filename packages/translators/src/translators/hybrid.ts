@@ -22,325 +22,6 @@ export type HybridConfig = {
 };
 export type Selections = Record<keyof TranslationResult, HybridSupportedTranslators>;
 
-/**
- * Request batching system for improved network efficiency
- */
-class RequestBatcher {
-    private pendingRequests: Array<{
-        text: string;
-        from: string;
-        to: string;
-        resolve: (result: TranslationResult) => void;
-        reject: (error: any) => void;
-        timestamp: number;
-    }> = [];
-    
-    private batchTimeout: NodeJS.Timeout | null = null;
-    private readonly BATCH_DELAY = 5; // Reduced from 20ms to 5ms for faster batching
-    private readonly MAX_BATCH_SIZE = 15; // Increased from 10 to 15 for better efficiency
-    private readonly MAX_BATCH_CHARS = 7500; // Increased from 5000 to 7500
-    
-    constructor(private translator: HybridTranslator) {}
-
-    /**
-     * Add a translation request to the batch
-     */
-    async addRequest(text: string, from: string, to: string): Promise<TranslationResult> {
-        return new Promise((resolve, reject) => {
-            this.pendingRequests.push({
-                text,
-                from,
-                to,
-                resolve,
-                reject,
-                timestamp: Date.now()
-            });
-
-            // If batch is full or we've reached character limit, process immediately
-            const totalChars = this.pendingRequests.reduce((sum, req) => sum + req.text.length, 0);
-            if (this.pendingRequests.length >= this.MAX_BATCH_SIZE || totalChars >= this.MAX_BATCH_CHARS) {
-                this.processBatch();
-            } else {
-                // Otherwise, set a timer to process the batch
-                this.scheduleBatchProcessing();
-            }
-        });
-    }
-
-    /**
-     * Schedule batch processing with a delay
-     */
-    private scheduleBatchProcessing(): void {
-        if (this.batchTimeout) {
-            return; // Already scheduled
-        }
-
-        this.batchTimeout = setTimeout(() => {
-            this.processBatch();
-        }, this.BATCH_DELAY);
-    }
-
-    /**
-     * Process the current batch of requests
-     */
-    private async processBatch(): Promise<void> {
-        if (this.batchTimeout) {
-            clearTimeout(this.batchTimeout);
-            this.batchTimeout = null;
-        }
-
-        if (this.pendingRequests.length === 0) {
-            return;
-        }
-
-        const requests = [...this.pendingRequests];
-        this.pendingRequests = [];
-
-        try {
-            await this.processBatchedRequests(requests);
-        } catch (error) {
-            // If batch processing fails, fall back to individual requests
-            for (const request of requests) {
-                try {
-                    const result = await this.translator.translateSingle(request.text, request.from, request.to);
-                    request.resolve(result);
-                } catch (err) {
-                    request.reject(err);
-                }
-            }
-        }
-    }
-
-    /**
-     * Process multiple requests efficiently
-     */
-    private async processBatchedRequests(requests: Array<{
-        text: string;
-        from: string;
-        to: string;
-        resolve: (result: TranslationResult) => void;
-        reject: (error: any) => void;
-        timestamp: number;
-    }>): Promise<void> {
-        // Group requests by language pair for better efficiency
-        const grouped = this.groupByLanguagePair(requests);
-
-        // Process each language pair group in parallel
-        const promises = Object.entries(grouped).map(async ([langPair, groupRequests]) => {
-            const [from, to] = langPair.split('|');
-            return this.processLanguageGroup(groupRequests, from, to);
-        });
-
-        await Promise.allSettled(promises);
-    }
-
-    /**
-     * Group requests by language pair
-     */
-    private groupByLanguagePair(requests: any[]): { [key: string]: any[] } {
-        return requests.reduce((groups, request) => {
-            const key = `${request.from}|${request.to}`;
-            if (!groups[key]) {
-                groups[key] = [];
-            }
-            groups[key].push(request);
-            return groups;
-        }, {});
-    }
-
-    /**
-     * Process a group of requests with the same language pair
-     */
-    private async processLanguageGroup(requests: any[], _from: string, _to: string): Promise<void> {
-        // For small groups, process in parallel
-        if (requests.length <= 5) { // Increased from 3 to 5
-            const promises = requests.map(async (request) => {
-                try {
-                    const result = await this.translator.translateSingle(request.text, request.from, request.to);
-                    request.resolve(result);
-                } catch (error) {
-                    request.reject(error);
-                }
-            });
-            await Promise.allSettled(promises);
-            return;
-        }
-
-        // For larger groups, process with controlled concurrency
-        const concurrencyLimit = 5; // Increased from 3 to 5
-        for (let i = 0; i < requests.length; i += concurrencyLimit) {
-            const batch = requests.slice(i, i + concurrencyLimit);
-            const promises = batch.map(async (request) => {
-                try {
-                    const result = await this.translator.translateSingle(request.text, request.from, request.to);
-                    request.resolve(result);
-                } catch (error) {
-                    request.reject(error);
-                }
-            });
-            await Promise.allSettled(promises);
-        }
-    }
-
-    /**
-     * Get batching statistics
-     */
-    getStats() {
-        return {
-            pendingRequests: this.pendingRequests.length,
-            batchDelay: this.BATCH_DELAY,
-            maxBatchSize: this.MAX_BATCH_SIZE,
-            maxBatchChars: this.MAX_BATCH_CHARS
-        };
-    }
-}
-
-/**
- * Smart prefetching system that learns user patterns
- */
-class SmartPrefetcher {
-    private languagePairFrequency = new Map<string, number>();
-    private textPatterns = new Map<string, { frequency: number; lastUsed: number; predictions: string[] }>();
-    private prefetchQueue = new Set<string>();
-    private readonly MAX_PREFETCH_QUEUE = 15; // Reduced from 20 to 15
-    private readonly PATTERN_DECAY_TIME = 20 * 60 * 1000; // Reduced from 30 to 20 minutes
-    private readonly MIN_FREQUENCY_FOR_PREFETCH = 1; // Reduced from 2 to 1
-
-    constructor(private translator: HybridTranslator) {}
-
-    /**
-     * Learn from user translation patterns
-     */
-    learnPattern(text: string, from: string, to: string): void {
-        const langPair = `${from}|${to}`;
-        
-        // Track language pair frequency
-        this.languagePairFrequency.set(langPair, (this.languagePairFrequency.get(langPair) || 0) + 1);
-        
-        // Track text patterns (first 3 words)
-        const words = text.toLowerCase().trim().split(/\s+/).slice(0, 3);
-        if (words.length >= 2) {
-            const pattern = words.join(' ');
-            const existing = this.textPatterns.get(pattern) || { frequency: 0, lastUsed: 0, predictions: [] };
-            
-            existing.frequency++;
-            existing.lastUsed = Date.now();
-            
-            // Add full text as prediction if it's not already there
-            if (!existing.predictions.includes(text) && existing.predictions.length < 3) { // Reduced from 5 to 3
-                existing.predictions.push(text);
-            }
-            
-            this.textPatterns.set(pattern, existing);
-        }
-
-        // Clean old patterns occasionally
-        if (Math.random() < 0.05) { // Reduced from 0.1 to 0.05
-            this.cleanOldPatterns();
-        }
-    }
-
-    /**
-     * Get prefetch suggestions based on current text
-     */
-    getPrefetchSuggestions(text: string, from: string, to: string): Array<{ text: string; from: string; to: string; confidence: number }> {
-        const suggestions: Array<{ text: string; from: string; to: string; confidence: number }> = [];
-        const words = text.toLowerCase().trim().split(/\s+/).slice(0, 3);
-        
-        if (words.length < 2) return suggestions;
-
-        const pattern = words.join(' ');
-        const patternData = this.textPatterns.get(pattern);
-        
-        if (patternData && patternData.frequency >= this.MIN_FREQUENCY_FOR_PREFETCH) {
-            // Suggest related texts based on pattern
-            for (const prediction of patternData.predictions) {
-                if (prediction !== text) {
-                    const confidence = Math.min(patternData.frequency / 5, 0.9); // Reduced denominator from 10 to 5
-                    suggestions.push({ text: prediction, from, to, confidence });
-                }
-            }
-        }
-
-        // Also suggest common language pairs
-        const reverseLangPair = `${to}|${from}`;
-        
-        if (this.languagePairFrequency.get(reverseLangPair) && this.languagePairFrequency.get(reverseLangPair)! >= 2) { // Reduced from 3 to 2
-            suggestions.push({ text, from: to, to: from, confidence: 0.7 }); // Increased from 0.6 to 0.7
-        }
-
-        return suggestions.slice(0, 2); // Reduced from 3 to 2 suggestions
-    }
-
-    /**
-     * Execute prefetching in background
-     */
-    async prefetch(suggestions: Array<{ text: string; from: string; to: string; confidence: number }>): Promise<void> {
-        for (const suggestion of suggestions) {
-            if (this.prefetchQueue.size >= this.MAX_PREFETCH_QUEUE) {
-                break;
-            }
-
-            const cacheKey = `${suggestion.from}|${suggestion.to}|${suggestion.text.toLowerCase().trim()}`;
-            
-            // Skip if already in queue or cache
-            if (this.prefetchQueue.has(cacheKey) || this.translator.hasInCache(cacheKey)) {
-                continue;
-            }
-
-            this.prefetchQueue.add(cacheKey);
-
-            // Prefetch with low priority (add small delay)
-            setTimeout(async () => {
-                try {
-                    await this.translator.translateSingle(suggestion.text, suggestion.from, suggestion.to);
-                } catch (error) {
-                    // Ignore prefetch errors
-                    console.debug('Prefetch failed:', error);
-                } finally {
-                    this.prefetchQueue.delete(cacheKey);
-                }
-            }, suggestion.confidence > 0.8 ? 50 : 150); // Faster prefetch times
-        }
-    }
-
-    /**
-     * Clean old patterns to prevent memory bloat
-     */
-    private cleanOldPatterns(): void {
-        const now = Date.now();
-        for (const [pattern, data] of this.textPatterns) {
-            if (now - data.lastUsed > this.PATTERN_DECAY_TIME) {
-                this.textPatterns.delete(pattern);
-            }
-        }
-    }
-
-    /**
-     * Get most common language pairs
-     */
-    getTopLanguagePairs(limit = 3): Array<{ pair: string; frequency: number }> { // Reduced from 5 to 3
-        return Array.from(this.languagePairFrequency.entries())
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, limit)
-            .map(([pair, frequency]) => ({ pair, frequency }));
-    }
-
-    /**
-     * Get prefetching statistics
-     */
-    getStats() {
-        return {
-            languagePairs: this.languagePairFrequency.size,
-            textPatterns: this.textPatterns.size,
-            prefetchQueueSize: this.prefetchQueue.size,
-            maxPrefetchQueue: this.MAX_PREFETCH_QUEUE,
-            patternDecayTime: this.PATTERN_DECAY_TIME,
-            minFrequencyForPrefetch: this.MIN_FREQUENCY_FOR_PREFETCH
-        };
-    }
-}
-
 class HybridTranslator {
     channel: any; // communication channel.
     /**
@@ -357,18 +38,8 @@ class HybridTranslator {
     };
     MAIN_TRANSLATOR: HybridSupportedTranslators = "GoogleTranslate";
 
-    /**
-     * Request batcher for improved network efficiency (lazy loaded)
-     */
-    private _batcher?: RequestBatcher;
-
-    /**
-     * Smart prefetcher for predictive caching (lazy loaded)
-     */
-    private _prefetcher?: SmartPrefetcher;
-
     // Cache: translation results by (text,from,to) hash
-    private cache = new LRUCache<string, TranslationResult>({ max: 250, ttl: 15 * 60 * 1000 }); // Increased cache size and TTL
+    private cache = new LRUCache<string, TranslationResult>({ max: 250, ttl: 15 * 60 * 1000 });
     // In-flight requests to dedupe concurrent calls
     private inflight = new Map<string, Promise<TranslationResult>>();
 
@@ -403,23 +74,6 @@ class HybridTranslator {
 
         // Warm up translators proactively to reduce first translation latency
         this.warmUpTranslators();
-    }
-
-    /**
-     * Lazy getters for performance components
-     */
-    private get batcher(): RequestBatcher {
-        if (!this._batcher) {
-            this._batcher = new RequestBatcher(this);
-        }
-        return this._batcher;
-    }
-
-    private get prefetcher(): SmartPrefetcher {
-        if (!this._prefetcher) {
-            this._prefetcher = new SmartPrefetcher(this);
-        }
-        return this._prefetcher;
     }
 
     /**
@@ -648,18 +302,6 @@ class HybridTranslator {
         const cached = this.cache.get(key);
         if (cached) {
             this.stats.cacheHits++;
-            
-            // Learn pattern and prefetch in background (only if needed)
-            if (this.stats.requests > 2) { // Reduced threshold from 3 to 2
-                setTimeout(() => {
-                    this.prefetcher.learnPattern(text, from, to);
-                    const suggestions = this.prefetcher.getPrefetchSuggestions(text, from, to);
-                    if (suggestions.length > 0) {
-                        this.prefetcher.prefetch(suggestions).catch(() => {});
-                    }
-                }, 0);
-            }
-            
             return cached;
         }
 
@@ -667,34 +309,10 @@ class HybridTranslator {
         const existing = this.inflight.get(key);
         if (existing) return existing;
 
-        // For first few requests, use direct translation (faster)
-        if (this.stats.requests < 1) { // Reduced threshold from 2 to 1
-            try {
-                const result = await this.translateSingle(text, from, to);
-                this.stats.requests++;
-                return result;
-            } catch (error) {
-                // Fall back to batch system
-            }
-        }
-
-        // Learn pattern for frequent users only
-        if (this.stats.requests > 2) { // Reduced threshold from 3 to 2
-            this.prefetcher.learnPattern(text, from, to);
-            
-            // Get prefetch suggestions
-            const suggestions = this.prefetcher.getPrefetchSuggestions(text, from, to);
-            
-            // Start prefetching in background (non-blocking)
-            if (suggestions.length > 0) {
-                this.prefetcher.prefetch(suggestions).catch(() => {}); // Ignore prefetch errors
-            }
-        }
-
         const exec = (async (): Promise<TranslationResult> => {
             try {
                 // Use batching system for better efficiency
-                const result = await this.batcher.addRequest(text, from, to);
+                const result = await this.translateSingle(text, from, to);
                 this.stats.requests++;
                 return result;
             } catch (error) {
@@ -722,7 +340,7 @@ class HybridTranslator {
      * @returns pronounce finished
      */
     async pronounce(text: string, language: string, speed: PronunciationSpeed) {
-        return this.REAL_TRANSLATORS[this.MAIN_TRANSLATOR].pronounce(text, language, speed);
+        return await this.REAL_TRANSLATORS[this.MAIN_TRANSLATOR].pronounce(text, language, speed);
     }
 
     /**
@@ -759,19 +377,9 @@ class HybridTranslator {
             inflight: this.inflight.size
         };
 
-        // Only include component stats if they've been initialized (lazy loading)
-        if (this._batcher) {
-            stats.batcher = this._batcher.getStats();
-        }
-        
-        if (this._prefetcher) {
-            stats.prefetcher = this._prefetcher.getStats();
-            stats.topLanguagePairs = this._prefetcher.getTopLanguagePairs(3);
-        }
-
         // Get Bing translator stats if available
-        if (this.REAL_TRANSLATORS.BingTranslate?.getPoolStats) {
-            stats.bing = this.REAL_TRANSLATORS.BingTranslate.getPoolStats();
+        if (this.REAL_TRANSLATORS.BingTranslate?.getCacheStats) {
+            stats.bing = this.REAL_TRANSLATORS.BingTranslate.getCacheStats();
         }
 
         return stats;

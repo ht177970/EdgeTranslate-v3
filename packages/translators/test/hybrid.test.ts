@@ -1,4 +1,3 @@
-import axios from "axios";
 import HybridTranslator from "../src/translators/hybrid";
 
 describe("hybrid translator api", () => {
@@ -17,10 +16,6 @@ describe("hybrid translator api", () => {
         },
         {}
     );
-
-    beforeAll(() => {
-        // Service Worker 호환 axios가 이미 설정됨 - adapter 설정 불필요
-    });
 
     it("to detect language of English text", (done) => {
         TRANSLATOR.detect("hello")

@@ -1,12 +1,7 @@
-import axios from "axios";
 import GoogleTranslator from "../src/translators/google";
 
 describe("google translator api", () => {
     const TRANSLATOR = new GoogleTranslator();
-
-    beforeAll(() => {
-        // Service Worker 호환 axios가 이미 설정됨 - adapter 설정 불필요
-    });
 
     it("to update TKK", (done) => {
         TRANSLATOR.updateTKK()

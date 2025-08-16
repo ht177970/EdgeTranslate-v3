@@ -22,10 +22,32 @@ const FILTERED_ERROR_PATTERNS = [
 function joinMessage(args) {
     try {
         return args
-            .map((v) => (typeof v === "string" ? v : (v && v.message) || JSON.stringify(v)))
+            .map((v) => {
+                if (typeof v === "string") return v;
+                if (v && v.message) return v.message;
+                try {
+                    return JSON.stringify(v);
+                } catch (stringifyError) {
+                    // Handle circular references and other stringify errors
+                    try {
+                        return Object.prototype.toString.call(v);
+                    } catch (fallbackError) {
+                        return "[Unknown Object]";
+                    }
+                }
+            })
             .join(" ");
     } catch (_) {
-        return args.join(" ");
+        // Fallback to safe string conversion
+        return args
+            .map((arg) => {
+                try {
+                    return String(arg);
+                } catch (error) {
+                    return "[Unserializable Object]";
+                }
+            })
+            .join(" ");
     }
 }
 

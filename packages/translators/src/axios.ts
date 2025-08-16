@@ -1,8 +1,8 @@
 import type { AxiosInstance, Method } from "axios";
 
 /**
- * Service Worker 호환 Axios 대체 구현
- * 실제 axios 없이 fetch를 사용한 동일한 인터페이스 제공
+ * Service Worker compatible Axios replacement implementation
+ * Provides the same interface as axios while using fetch under the hood
  */
 
 interface ServiceWorkerAxiosRequestConfig {
@@ -27,7 +27,7 @@ interface ServiceWorkerAxiosResponse<T = any> {
 }
 
 /**
- * Service Worker 환경을 위한 axios 대체 함수
+ * Service Worker environment axios replacement function
  */
 const createServiceWorkerAxios = (): AxiosInstance => {
     const axiosReplacement = function (config: ServiceWorkerAxiosRequestConfig | string): Promise<ServiceWorkerAxiosResponse> {

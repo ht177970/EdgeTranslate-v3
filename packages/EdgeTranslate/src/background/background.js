@@ -233,10 +233,24 @@ if (typeof window !== "undefined") {
 
     window.addEventListener("unhandledrejection", (event) => {
         if (event.reason) {
-            const message =
-                typeof event.reason === "string"
-                    ? event.reason
-                    : event.reason.message || event.reason.toString() || "";
+            let message = "";
+            try {
+                if (typeof event.reason === "string") {
+                    message = event.reason;
+                } else if (event.reason && event.reason.message) {
+                    message = event.reason.message;
+                } else {
+                    // Safely convert object to string
+                    try {
+                        message = event.reason.toString();
+                    } catch (toStringError) {
+                        message = Object.prototype.toString.call(event.reason);
+                    }
+                }
+            } catch (error) {
+                message = "[Unserializable Error Object]";
+            }
+
             if (shouldFilterError(message)) {
                 logWarn("필터링된 Promise rejection:", message);
                 event.preventDefault();
@@ -1214,7 +1228,22 @@ if (BUILD_ENV === "development" && BROWSER_ENV === "chrome") {
 if (typeof self !== "undefined" && self.addEventListener) {
     // Service Worker에서의 unhandledrejection 이벤트 처리
     self.addEventListener("unhandledrejection", (event) => {
-        const message = event.reason?.message || event.reason?.toString() || "";
+        let message = "";
+        try {
+            if (event.reason?.message) {
+                message = event.reason.message;
+            } else if (event.reason) {
+                // Safely convert object to string
+                try {
+                    message = event.reason.toString();
+                } catch (toStringError) {
+                    message = Object.prototype.toString.call(event.reason);
+                }
+            }
+        } catch (error) {
+            message = "[Unserializable Error Object]";
+        }
+
         if (shouldFilterError(message)) {
             logWarn("Service Worker에서 필터링된 Promise rejection:", message);
             event.preventDefault();

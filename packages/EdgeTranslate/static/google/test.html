@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Google Translate Test</title>
+    <script>
+        // Mock USER_LANG and EDGE_TRANSLATE_URL for testing
+        window.USER_LANG = 'ko';
+        window.EDGE_TRANSLATE_URL = './';
+    </script>
+</head>
+<body>
+    <h1>Test Page for Google Translate</h1>
+    <p>This is a test page to see the Google Translate banner.</p>
+    
+    <!-- Google Translate injection element -->
+    <div id="google-translate-injection" user-lang="ko" edge-translate-url="./"></div>
+    
+    <script src="injection.js"></script>
+</body>
+</html>
