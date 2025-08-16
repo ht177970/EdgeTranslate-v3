@@ -222,19 +222,44 @@ class HybridTranslator {
             mainMeaning: "",
         };
         const results = new Map(await Promise.all(requests));
+        
+        // Process each component with fallback support
         let item: keyof Selections;
         for (item in this.CONFIG.selections) {
             try {
                 const selectedTranslator = this.CONFIG.selections[item];
-                translation[item] = results.get(selectedTranslator)![item] as string &
-                    DetailedMeaning[] &
-                    Definition[] &
-                    Example[];
+                const selectedResult = results.get(selectedTranslator)!;
+                
+                // Check if the selected translator provided the component
+                if (selectedResult[item] && this.hasValue(selectedResult[item])) {
+                    // Use the value from the selected translator
+                    translation[item] = selectedResult[item] as string &
+                        DetailedMeaning[] &
+                        Definition[] &
+                        Example[];
+                } else {
+                    // Fallback: Try to get the component from Google Translate if available
+                    const googleResult = results.get("GoogleTranslate");
+                    if (googleResult && googleResult[item] && this.hasValue(googleResult[item])) {
+                        translation[item] = googleResult[item] as string &
+                            DetailedMeaning[] &
+                            Definition[] &
+                            Example[];
+                    } else if (selectedResult[item]) {
+                        // Fallback to selected translator's value even if it's empty/undefined
+                        // to avoid missing components
+                        translation[item] = selectedResult[item] as string &
+                            DetailedMeaning[] &
+                            Definition[] &
+                            Example[];
+                    }
+                }
             } catch (error) {
                 console.log(`${item} ${this.CONFIG.selections[item]}`);
                 console.log(error);
             }
         }
+        
         // Fill passthrough originalText if empty
         if (!translation.originalText) translation.originalText = text;
         this.cache.set(key, translation);
@@ -292,6 +317,23 @@ class HybridTranslator {
     /**
      * Cleanup all translator resources
      */
+    /**
+     * Check if a value has meaningful content.
+     * 
+     * @param value The value to check
+     * @returns true if the value has meaningful content, false otherwise
+     */
+    private hasValue(value: any): boolean {
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'string') return value.trim().length > 0;
+        if (Array.isArray(value)) return value.length > 0;
+        if (typeof value === 'object') {
+            // For objects, check if they have any enumerable properties
+            return Object.keys(value).length > 0;
+        }
+        return true; // For other types (boolean, number, etc.)
+    }
+
     async cleanup() {
         // Clear hybrid cache
         this.cache.clear();
