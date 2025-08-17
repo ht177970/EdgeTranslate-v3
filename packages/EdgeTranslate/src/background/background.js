@@ -85,6 +85,9 @@ function isPdfContentType(contentType) {
  * PDF.js 방식: URL 패턴 기반 스마트 감지 (더 포괄적)
  */
 function isPotentialPdfUrl(url) {
+    // Check if url is a valid string
+    if (!url || typeof url !== "string") return false;
+    
     // 1. 명확한 .pdf 확장자 (PDF.js 스타일)
     if (/\.pdf($|[?#])/i.test(url)) return true;
 
@@ -131,11 +134,14 @@ try {
             // main_frame만 처리
             if (details.frameId !== 0) return;
 
+            // URL이 유효한지 확인
+            if (!details.url || typeof details.url !== "string") return;
+
             const url = details.url;
             const headers = details.responseHeaders || [];
 
             // Content-Type 헤더 확인 (PDF.js 방식)
-            const contentTypeHeader = headers.find((h) => h.name.toLowerCase() === "content-type");
+            const contentTypeHeader = headers.find((h) => h && h.name && h.name.toLowerCase() === "content-type");
             const contentType = contentTypeHeader?.value?.toLowerCase() || "";
 
             // PDF.js 스타일: 더 포괄적인 PDF MIME 타입 체크
@@ -151,6 +157,9 @@ try {
             if (isPdf && !isDownload) {
                 setTimeout(async () => {
                     try {
+                        // URL이 유효한지 다시 확인
+                        if (!url || typeof url !== "string") return;
+                        
                         const viewerUrl = chrome.runtime.getURL(
                             `web/viewer.html?file=${encodeURIComponent(
                                 url
@@ -225,37 +234,111 @@ try {
  */
 if (typeof window !== "undefined") {
     window.addEventListener("error", (event) => {
-        if (event.error && event.error.message && shouldFilterError(event.error.message)) {
-            event.preventDefault();
-            return false;
+        try {
+            if (event && event.error && event.error.message && shouldFilterError(event.error.message)) {
+                event.preventDefault();
+                return false;
+            }
+        } catch (handlerError) {
+            // Ignore errors in error handler
         }
     });
 
     window.addEventListener("unhandledrejection", (event) => {
-        if (event.reason) {
-            let message = "";
-            try {
-                if (typeof event.reason === "string") {
-                    message = event.reason;
-                } else if (event.reason && event.reason.message) {
-                    message = event.reason.message;
-                } else {
-                    // Safely convert object to string
-                    try {
-                        message = event.reason.toString();
-                    } catch (toStringError) {
-                        message = Object.prototype.toString.call(event.reason);
+        try {
+            if (event && event.reason) {
+                let message = "";
+                try {
+                    if (typeof event.reason === "string") {
+                        message = event.reason;
+                    } else if (event.reason && event.reason.message) {
+                        message = event.reason.message;
+                    } else if (event.reason && typeof event.reason === "object") {
+                        // Safely convert object to string
+                        try {
+                            message = event.reason.toString();
+                        } catch (toStringError) {
+                            message = Object.prototype.toString.call(event.reason);
+                        }
+                    } else {
+                        message = String(event.reason);
                     }
+                } catch (error) {
+                    message = "[Unserializable Error Object]";
                 }
-            } catch (error) {
-                message = "[Unserializable Error Object]";
-            }
 
-            if (shouldFilterError(message)) {
-                logWarn("필터링된 Promise rejection:", message);
-                event.preventDefault();
-                return false;
+                // 더 안전하게 오류 메시지 필터링
+                if (message && typeof message === "string" && shouldFilterError(message)) {
+                    logWarn("필터링된 Promise rejection:", message);
+                    try {
+                        event.preventDefault();
+                    } catch (preventError) {
+                        // preventDefault 실패 시 무시
+                    }
+                    return false;
+                }
             }
+        } catch (handlerError) {
+            // Ignore errors in rejection handler
+        }
+    });
+}
+
+// Service Worker 환경에서도 오류 처리
+if (typeof self !== "undefined" && self.addEventListener) {
+    self.addEventListener("error", (event) => {
+        try {
+            if (event && event.error && event.error.message) {
+                const message = event.error.message;
+                if (typeof message === "string" && shouldFilterError(message)) {
+                    logWarn("Service Worker 오류 필터링됨:", message);
+                    try {
+                        event.preventDefault();
+                    } catch (preventError) {
+                        // preventDefault 실패 시 무시
+                    }
+                    return false;
+                }
+            }
+        } catch (handlerError) {
+            // Ignore errors in error handler
+        }
+    });
+
+    self.addEventListener("unhandledrejection", (event) => {
+        try {
+            if (event && event.reason) {
+                let message = "";
+                try {
+                    if (typeof event.reason === "string") {
+                        message = event.reason;
+                    } else if (event.reason && event.reason.message) {
+                        message = event.reason.message;
+                    } else if (event.reason && typeof event.reason === "object") {
+                        try {
+                            message = event.reason.toString();
+                        } catch (toStringError) {
+                            message = Object.prototype.toString.call(event.reason);
+                        }
+                    } else {
+                        message = String(event.reason);
+                    }
+                } catch (error) {
+                    message = "[Unserializable Error Object]";
+                }
+
+                if (message && typeof message === "string" && shouldFilterError(message)) {
+                    logWarn("Service Worker Promise rejection 필터링됨:", message);
+                    try {
+                        event.preventDefault();
+                    } catch (preventError) {
+                        // preventDefault 실패 시 무시
+                    }
+                    return false;
+                }
+            }
+        } catch (handlerError) {
+            // Ignore errors in rejection handler
         }
     });
 }
@@ -560,18 +643,22 @@ if (typeof document === "undefined") {
         return {
             nodeType: 3,
             nodeName: "#text",
-            textContent: text,
-            data: text,
+            textContent: text || "",
+            data: text || "",
             parentNode: null,
         };
     };
 
     // Enhanced query methods that actually work
     self.document.getElementById = function (id) {
+        // Handle case where id is not a string or is null/undefined
+        if (!id || typeof id !== "string") return null;
+        
         // Recursively search through all elements for the ID
         function findById(element, targetId) {
+            if (!element) return null;
             if (element.id === targetId) return element;
-            if (element.children) {
+            if (element.children && Array.isArray(element.children)) {
                 for (let child of element.children) {
                     const found = findById(child, targetId);
                     if (found) return found;
@@ -583,6 +670,9 @@ if (typeof document === "undefined") {
     };
 
     self.document.querySelector = function (selector) {
+        // Handle case where selector is not a string or is null/undefined
+        if (!selector || typeof selector !== "string") return null;
+        
         // Basic selector support for common cases
         if (selector.startsWith("#")) {
             return self.document.getElementById(selector.slice(1));
@@ -593,6 +683,33 @@ if (typeof document === "undefined") {
 
     self.document.querySelectorAll = function () {
         return [];
+    };
+    
+    // Add missing document properties
+    self.document.location = {
+        origin: "chrome-extension://",
+        pathname: "/background.js",
+        search: "",
+        href: "chrome-extension://background.js",
+        protocol: "chrome-extension:",
+        host: "",
+        hostname: "",
+    };
+    
+    // Add document methods that might be called
+    self.document.addEventListener = function() {};
+    self.document.removeEventListener = function() {};
+    self.document.createTreeWalker = function() {
+        return {
+            nextNode: function() { return null; },
+            firstChild: function() { return null; },
+            parentNode: function() { return null; }
+        };
+    };
+    
+    // Add toString method to prevent errors
+    self.document.toString = function() {
+        return "[object Document]";
     };
 }
 

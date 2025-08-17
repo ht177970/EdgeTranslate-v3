@@ -11486,6 +11486,8 @@ Dual licensed under the MIT and GPL licenses.
         _.l.fi = function() {
             this.j = new _.jd(bo(this.l));
             this.S = this.j.C(V(this, "menuBody"));
+            // Mark that a toggle is coming from trigger to avoid blur->close->click->open loop
+            this.A.J(this.D, "mousedown", (0, _.z)(function(){ this._toggleFromTrigger = !0; }, this));
             this.A.J(this.D, "click", this.df);
             _.E ? this.A.J(this.l, "blur", this.Xd) : this.A.J(co(this.l), "blur", this.Xd);
             this.dispatchEvent("load")
@@ -11503,15 +11505,35 @@ Dual licensed under the MIT and GPL licenses.
             this.Xd()
         }
         ;
-        _.l.df = function() {
-            Hx(this);
-            co(this.l).focus();
-            this.ra = !0
+        _.l.df = function(a) {
+            // Toggle open/close on repeated clicks
+            try {
+                a && a.preventDefault && a.preventDefault();
+            } catch (e) {}
+            if (this.menuOpen) {
+                // Currently open -> close
+                Hx(this, !1);
+                this.ra = !1;
+                this.menuOpen = !1;
+            } else {
+                // Currently closed -> open
+                Hx(this);
+                co(this.l).focus();
+                this.ra = !0;
+                this.menuOpen = !0;
+            }
+            this._toggleFromTrigger = !1;
         }
         ;
         _.l.Xd = function() {
+            // If blur is caused by clicking the trigger, skip auto-closing and let click handler toggle
+            if (this._toggleFromTrigger) {
+                this._toggleFromTrigger = !1;
+                return;
+            }
             this.ra && (this.ra = !1,
             Hx(this, !1),
+            this.menuOpen = !1,
             _.rd(_.kd(this.D)).focus())
         }
         ;
@@ -11662,23 +11684,40 @@ Dual licensed under the MIT and GPL licenses.
             _.nk(a, "#");
             this.M = this.h.U("SPAN");
             a.appendChild(this.M);
-            this.V = this.h.U("IMG", {
-                src: "https://www.google.com/images/cleardot.gif",
-                alt: "",
-                style: "background-image:url(" + gq + ");background-position:-14px 0px;border:none",
-                width: 14,
-                height: 14
+            // Inline SVG dropdown icon (actual DOM) for better clarity
+            this.V = this.h.U("SPAN", {
+                "aria-hidden": "true",
+                style: "display:inline-block;vertical-align:middle;color:#6b7280"
             });
+            var __doc = this.h.g || document;
+            var __svg = __doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+            __svg.setAttribute("width", "14");
+            __svg.setAttribute("height", "14");
+            __svg.setAttribute("viewBox", "0 0 24 24");
+            __svg.setAttribute("aria-hidden", "true");
+            __svg.setAttribute("focusable", "false");
+            var __path = __doc.createElementNS("http://www.w3.org/2000/svg", "path");
+            // Chevron-down with rounded stroke for a sleeker look
+            __path.setAttribute("fill", "none");
+            __path.setAttribute("stroke", "currentColor");
+            __path.setAttribute("stroke-width", "2");
+            __path.setAttribute("stroke-linecap", "round");
+            __path.setAttribute("stroke-linejoin", "round");
+            __path.setAttribute("d", "M6 9l6 6 6-6");
+            __svg.appendChild(__path);
+            this.V.appendChild(__svg);
             a.appendChild(this.V);
             this.Aa(a)
         }
         ;
         _.l.Gf = function() {
-            _.M(this.V, "backgroundPosition", "-14px 0px")
+            // hover/active: darker color
+            _.M(this.V, "color", "#374151")
         }
         ;
         _.l.Hf = function() {
-            _.M(this.V, "backgroundPosition", "0px 0px")
+            // normal
+            _.M(this.V, "color", "#6b7280")
         }
         ;
         _.l.ma = function() {
@@ -11707,35 +11746,38 @@ Dual licensed under the MIT and GPL licenses.
             _.nk(a, "#");
             this.M = this.h.U("SPAN");
             a.appendChild(this.M);
-            a.appendChild(this.h.U("IMG", {
-                src: "https://www.google.com/images/cleardot.gif",
-                alt: "",
-                width: 1,
-                height: 1
-            }));
-            a.appendChild(this.h.U("SPAN", {
-                style: "border-left:1px solid #bbb"
-            }, "\u200b"));
-            a.appendChild(this.h.U("IMG", {
-                src: "https://www.google.com/images/cleardot.gif",
-                alt: "",
-                width: 1,
-                height: 1
-            }));
+            // Replace separators and unicode arrow with actual inline SVG icon element
             this.V = this.h.U("span", {
-                style: "color:#767676",
+                style: "color:#6b7280;display:inline-block;vertical-align:middle",
                 "aria-hidden": "true"
-            }, "\u25bc");
+            });
+            var _doc2 = this.h.g || document;
+            var _svg2 = _doc2.createElementNS("http://www.w3.org/2000/svg", "svg");
+            _svg2.setAttribute("width", "14");
+            _svg2.setAttribute("height", "14");
+            _svg2.setAttribute("viewBox", "0 0 24 24");
+            _svg2.setAttribute("aria-hidden", "true");
+            _svg2.setAttribute("focusable", "false");
+            var _path2 = _doc2.createElementNS("http://www.w3.org/2000/svg", "path");
+            // Chevron-down with rounded stroke for a sleeker look
+            _path2.setAttribute("fill", "none");
+            _path2.setAttribute("stroke", "currentColor");
+            _path2.setAttribute("stroke-width", "2");
+            _path2.setAttribute("stroke-linecap", "round");
+            _path2.setAttribute("stroke-linejoin", "round");
+            _path2.setAttribute("d", "M6 9l6 6 6-6");
+            _svg2.appendChild(_path2);
+            this.V.appendChild(_svg2);
             a.appendChild(this.V);
             this.Aa(a)
         }
         ;
         _.l.Gf = function() {
-            _.M(this.V, "color", "#9b9b9b")
+            _.M(this.V, "color", "#374151")
         }
         ;
         _.l.Hf = function() {
-            _.M(this.V, "color", "#d5d5d5")
+            _.M(this.V, "color", "#6b7280")
         }
         ;
         _.l.ma = function() {
@@ -11757,20 +11799,43 @@ Dual licensed under the MIT and GPL licenses.
         };
         _.y(Lx, Gx);
         Lx.prototype.Md = function() {
-            var a = _.vk(this.h, "div");
-            a.className = "VIpgJd-ZVi9od-LgbsSe";
-            var b = this.h.U("DIV", {
-                style: "background: url(" + fq + ") repeat-x 0 -39px"
-            });
-            a.appendChild(b);
-            this.M = _.vk(this.h, "button");
-            b.appendChild(this.M);
-            this.Aa(a)
+                    var a = _.vk(this.h, "div");
+                    a.className = "VIpgJd-ZVi9od-LgbsSe";
+                    // Modern, clean options button (no gradient/sprites)
+                    this.M = this.h.U("button", {
+                        type: "button",
+                        style: "display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:none;border-radius:6px;background:#4285F4;color:#fff;line-height:1;outline:none;cursor:pointer;box-shadow:none;-webkit-appearance:none;appearance:none;"
+                    });
+                    // Label span (text set in Lh)
+                    this.labelSpan = this.h.U("span");
+                    this.M.appendChild(this.labelSpan);
+                    // Chevron-down icon
+                    var doc = this.h.g || document;
+                    var svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    svg.setAttribute("width", "12");
+                    svg.setAttribute("height", "12");
+                    svg.setAttribute("viewBox", "0 0 24 24");
+                    svg.setAttribute("aria-hidden", "true");
+                    svg.setAttribute("focusable", "false");
+                    var path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("fill", "none");
+                    path.setAttribute("stroke", "currentColor");
+                    path.setAttribute("stroke-width", "2");
+                    path.setAttribute("stroke-linecap", "round");
+                    path.setAttribute("stroke-linejoin", "round");
+                    path.setAttribute("d", "M6 9l6 6 6-6");
+                    svg.appendChild(path);
+                    this.M.appendChild(svg);
+                    a.appendChild(this.M);
+                    this.Aa(a)
         }
         ;
         Lx.prototype.Lh = function(a) {
-            _.vd(this.M);
-            this.M.appendChild(this.h.g.createTextNode(String(a + "\u00a0\u25bc")))
+                    // Set/replace label text without appending triangle
+                    if (this.labelSpan) {
+                        _.vd(this.labelSpan);
+                        this.labelSpan.appendChild(this.h.g.createTextNode(String(a)));
+                    }
         }
         ;
         Lx.prototype.ma = function() {
@@ -11903,7 +11968,7 @@ Dual licensed under the MIT and GPL licenses.
                     var c = "<span style=\"display:inline-block;vertical-align:middle;height:15px; width:51px;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader( src='" + "https://www.gstatic.com/images/branding/googlelogo/1x/googlelogo_color_42x16dp.png".replace(dp, Wo) + "',sizingMethod='scale');\"></span>";
                 else
                     c = U.Je,
-                    c = '<img src="' + T(mp("https://www.gstatic.com/images/branding/googlelogo/1x/googlelogo_color_42x16dp.png")) + '" width="37px" height="14px" style="padding-right: 3px" alt="Google ' + T(c) + '">';
+                    c = '<img src="' + T(mp("https://www.gstatic.com/images/branding/googlelogo/svg/googlelogo_clr_42x16px.svg")) + '" width="37" height="14" style="padding-right: 3px" alt="Google ' + T(c) + '">';
                 var d = U.Je;
                 var e = (0,
                 _.L)('<span style="white-space:nowrap"><a class="' + T("VIpgJd-ZVi9od-l4eHX-hSRGPd") + '" href="' + T(kp("https://translate.google.com")) + '" target="_blank">' + c + $o(d) + "</a></span>");
@@ -12145,7 +12210,8 @@ Dual licensed under the MIT and GPL licenses.
                 id: V(this, "finishTargetLang")
             }));
             var Q = jn(U.ti.apply(null, w));
-            this.g.Qh && (r = this.g.Qh);
+            // Disable SSL/padlock icon by not setting Qh into r
+            r = null;
             this.B = this.h.C(V(this, "container"));
             this.A.J(this.B, "load", this.ii);
             Xr(this.B, (0,
@@ -12160,7 +12226,9 @@ Dual licensed under the MIT and GPL licenses.
                   , dz = U.eg
                   , ez = U.eg;
                 ha = (0,
-                _.L)('<head><meta http-equiv="Content-Type" content="text/html; charset=UTF8"><link rel="stylesheet" type="text/css" href="' + T(gp(b)) + '"></head><body class="' + T("VIpgJd-ZVi9od-ORHb") + '" scroll="no" border=0 dir="' + T(a) + '"><table border=0 cellspacing=0 cellpadding=0 width=100% height=100%><tr valign=middle><td width=1 nowrap><a href="' + T(kp("https://translate.google.com")) + '" class="' + T("VIpgJd-ZVi9od-l4eHX-hSRGPd") + '" target="_blank"><img src="' + T(mp("https://www.gstatic.com/images/branding/googlelogo/1x/googlelogo_color_68x28dp.png")) + '" alt="Google ' + T(ce) + '"></a></td>' + (ha ? '<td width=1><img src="' + T(mp("https://www.google.com/images/cleardot.gif")) + '" width="9" height="15" title="' + T(ha) + '" alt="' + T(ha) + '" style="background-image:url(' + T(mp(gq)) + ');background-position:-56px 0px;margin:0 4px"></td>' : "") + '<td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td><table border=0 cellspacing=0 cellpadding=0 height=100%><tr id="' + T(c) + '" style="display:none" valign=middle><td nowrap><span class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '">' + $o(D) + '</span></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(d) + '"><b>' + $o($y) + '</b></button></div></div></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(q) + '"></button></div></div></td></tr><tr id="' + T(e) + '" style="display:none" valign=middle><td><span class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '">' + $o(az) + '&nbsp;<span dir="ltr">(<b id="' + T(f) + '"></b>%)</span>&nbsp;<img src="' + T(mp(iq)) + '"></span></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(g) + '">' + $o(bz) + '</button></div></div></td></tr><tr id="' + T(h) + '" style="display:none"><td><span class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '">' + $o(Q) + '</span></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(k) + '">' + $o(cz) + '</button></div></div></td></tr><tr id="' + T(m) + '" style="display:none" valign=middle><td><span id="' + T(n) + '" class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '"></span></td></tr></table></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td width=1 id="options"></td><td width=1><a id="' + T(p) + '" class="' + T("VIpgJd-ZVi9od-TvD9Pc-hSRGPd") + '" href="#" title="' + T(dz) + '"><img src="' + T(mp("https://www.google.com/images/cleardot.gif")) + '" width="15" height="15" alt="' + T(ez) + '" style="background-image:url(' + T(mp(gq)) + ');background-position:-28px 0px"></a></td></tr></table></body>').Xc();
+                _.L)('<head><meta http-equiv="Content-Type" content="text/html; charset=UTF8"><link rel="stylesheet" type="text/css" href="' + T(gp(b)) + '"><style>/* global resets for focusable elements */.VIpgJd-ZVi9od-ORHb button,.VIpgJd-ZVi9od-ORHb input[type=button],.VIpgJd-ZVi9od-ORHb input[type=submit],.VIpgJd-ZVi9od-ORHb select,.VIpgJd-ZVi9od-ORHb a,.VIpgJd-ZVi9od-ORHb [role=button],.VIpgJd-ZVi9od-ORHb [tabindex]{outline:none!important;box-shadow:none!important;border:none!important;-webkit-appearance:none;appearance:none;background-clip:padding-box;-webkit-tap-highlight-color:transparent}button,input[type=button],input[type=submit],select,a,[role=button]{outline:none!important;box-shadow:none!important;border:none!important;-webkit-appearance:none;appearance:none;background-clip:padding-box;-webkit-tap-highlight-color:transparent}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}button:focus,button:active{outline:none!important;box-shadow:none!important}a:focus{outline:none!important}button:-moz-focusring,[role=button]:-moz-focusring,[tabindex]:-moz-focusring,a:-moz-focusring{outline:none!important}/* focus-visible ring */.VIpgJd-ZVi9od-ORHb button:focus-visible,.VIpgJd-ZVi9od-TvD9Pc-hSRGPd:focus-visible,.VIpgJd-ZVi9od-ORHb [role=button]:focus-visible,.VIpgJd-ZVi9od-ORHb [tabindex]:focus-visible{outline:none!important;box-shadow:0 0 0 3px rgba(66,133,244,.28)!important;border-radius:8px}/* alignment/line fixes */.VIpgJd-ZVi9od-ORHb,.VIpgJd-ZVi9od-ORHb table{border-bottom:0!important;background-image:none!important}.VIpgJd-ZVi9od-ORHb tr,.VIpgJd-ZVi9od-ORHb td{vertical-align:middle!important}.VIpgJd-ZVi9od-l4eHX-hSRGPd img{display:block}/* button container overrides */.VIpgJd-ZVi9od-LgbsSe button{border:0!important;box-shadow:none!important;background-image:none!important}/* subtle interactions */.VIpgJd-ZVi9od-ORHb button{transition:background-color .15s,box-shadow .15s,transform .02s}.VIpgJd-ZVi9od-ORHb button:hover{filter:brightness(.98)}.VIpgJd-ZVi9od-ORHb button:active{transform:translateY(.5px)}.VIpgJd-ZVi9od-ORHb button[style*="background:transparent"]:hover{background:rgba(66,133,244,.08)!important}</style></head><body class="' + T("VIpgJd-ZVi9od-ORHb") + '" scroll="no" border=0 dir="' + T(a) + '" style="background:#f8fafc;">' +
+                '<table border=0 cellspacing=0 cellpadding=0 width=100% height=100% style="background:#f8fafc;border-bottom:0;box-shadow:0 6px 12px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.12)">' +
+                '<tr valign=middle><td width=1 nowrap><a href="' + T(kp("https://translate.google.com")) + '" class="' + T("VIpgJd-ZVi9od-l4eHX-hSRGPd") + '" target="_blank"><img src="' + T(mp("https://www.gstatic.com/images/branding/googlelogo/svg/googlelogo_clr_68x28px.svg")) + '" width="68" height="28" alt="Google ' + T(ce) + '"></a></td>' + (ha ? '<td width=1><img src="' + T(mp("https://www.google.com/images/cleardot.gif")) + '" width="9" height="15" title="' + T(ha) + '" alt="' + T(ha) + '" style="background-image:url(' + T(mp(gq)) + ');background-position:-56px 0px;margin:0 4px"></td>' : "") + '<td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td><table border=0 cellspacing=0 cellpadding=0 height=100%><tr id="' + T(c) + '" style="display:none" valign=middle><td nowrap><span class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '">' + $o(D) + '</span></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(d) + '" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:none;border-radius:6px;background:#4285F4;color:#fff;line-height:1;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;"><span aria-hidden="true" style="display:inline-block;width:14px;height:14px;vertical-align:middle;color:currentColor"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12a10 10 0 1 0 20 0A10 10 0 0 0 2 12Zm9-9.95V5m0 14v2.95M4.05 9H20M4.05 15H20M7.5 4.5c2.5 2.5 2.5 12.5 0 15 2.5-2.5 7-2.5 9.5 0-2.5-2.5-2.5-12.5 0-15-2.5 2.5-7 2.5-9.5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>' + $o($y) + '</span></button></div></div></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(q) + '"></button></div></div></td></tr><tr id="' + T(e) + '" style="display:none" valign=middle><td><span class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '">' + $o(az) + '&nbsp;<span dir="ltr">(<b id="' + T(f) + '"></b>%)</span>&nbsp;<img src="' + T(mp(iq)) + '"></span></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(g) + '" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:none;border-radius:6px;background:transparent;color:#1f2937;line-height:1;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;">' + $o(bz) + '</button></div></div></td></tr><tr id="' + T(h) + '" style="display:none"><td><span class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '">' + $o(Q) + '</span></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td nowrap><div class="' + T("VIpgJd-ZVi9od-LgbsSe") + '"><div><button id="' + T(k) + '" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:none;border-radius:6px;background:#4285F4;color:#fff;line-height:1;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;box-shadow:none;"><span aria-hidden="true" style="display:inline-block;width:14px;height:14px;vertical-align:middle;color:currentColor"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg></span><span>' + $o(cz) + '</span></button></div></div></td></tr><tr id="' + T(m) + '" style="display:none" valign=middle><td><span id="' + T(n) + '" class="' + T("VIpgJd-ZVi9od-ORHb-bN97Pc") + '"></span></td></tr></table></td><td class="' + T("VIpgJd-ZVi9od-ORHb-KE6vqe") + '"></td><td width=1 id="options"></td><td width=1><a id="' + T(p) + '" class="' + T("VIpgJd-ZVi9od-TvD9Pc-hSRGPd") + '" href="#" title="' + T(dz) + '" role="button" aria-label="' + T(dz) + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;outline:none;"><span aria-hidden="true" style="display:inline-block;width:15px;height:15px;color:#6b7280;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M6 18L18 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a></td></tr></table></body>').Xc();
                 W.write(_.$c(ha));
                 W.close()
             }, this))
