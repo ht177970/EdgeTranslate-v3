@@ -76,6 +76,7 @@ class BingTranslator {
      */
     MAX_RETRY = 1;
 
+
     /**
      * Translate API host.
      */
@@ -413,6 +414,102 @@ class BingTranslator {
         
         // Cache tokens for future use
         this.cacheTokens();
+    }
+
+    /**
+     * Extract translated text from ttranslatev3 response safely.
+     */
+    private extractTextFromTranslateResponse(res: any): string {
+        try {
+            if (Array.isArray(res)) {
+                // Typical shape: [{ translations: [{ text: "..." }] }]
+                const parts = res
+                    .map((item: any) => item?.translations?.[0]?.text || "")
+                    .filter(Boolean);
+                return parts.join("");
+            }
+            if (res && res[0]) {
+                return res[0]?.translations?.[0]?.text || "";
+            }
+        } catch (_) {
+            // ignore
+        }
+        return "";
+    }
+
+    // Removed legacy fixed-length chunk splitter; using adaptive segmentation instead.
+
+    /**
+     * Adaptively segment and translate without fixed length limits.
+     * If a segment fails (network/API/HTML), try finer-grained splits.
+     */
+    private async segmentAndTranslate(text: string, from: string, to: string): Promise<string> {
+        const tryOnce = async (t: string): Promise<string> => {
+            const resp = await this.request(this.constructTranslateParams, [t, from, to]);
+            const txt = this.extractTextFromTranslateResponse(resp);
+            if (txt) return txt;
+            // If nothing parsed, force a token refresh and retry once; if still empty, fall back to deeper split
+            await this.updateTokens();
+            const resp2 = await this.request(this.constructTranslateParams, [t, from, to]);
+            return this.extractTextFromTranslateResponse(resp2);
+        };
+
+        // First attempt: as-is
+        try {
+            const r = await tryOnce(text);
+            if (r) return r;
+        } catch (_) { /* proceed to split */ }
+
+        // Split to paragraphs
+        const paragraphs = text.split(/\n{2,}/).filter((p) => p.length > 0);
+        if (paragraphs.length > 1) {
+            const parts: string[] = [];
+            for (const p of paragraphs) {
+                const translated = await this.segmentAndTranslate(p, from, to);
+                parts.push(translated);
+            }
+            return parts.join("\n\n");
+        }
+
+        // Split to sentences
+        const sentences = text.split(/(?<=[.!?。！？])\s+/).filter(Boolean);
+        if (sentences.length > 1) {
+            const parts: string[] = [];
+            for (const s of sentences) {
+                const translated = await this.segmentAndTranslate(s, from, to);
+                parts.push(translated);
+            }
+            return parts.join(" ");
+        }
+
+        // Split by clauses (commas/semicolons)
+        const clauses = text.split(/[,;:、，；：]\s*/).filter(Boolean);
+        if (clauses.length > 1) {
+            const parts: string[] = [];
+            for (const c of clauses) {
+                const translated = await this.segmentAndTranslate(c, from, to);
+                parts.push(translated);
+            }
+            return parts.join(" ");
+        }
+
+        // Split by whitespace tokens as the last resort
+        const tokens = text.split(/\s+/).filter(Boolean);
+        if (tokens.length > 1) {
+            const parts: string[] = [];
+            for (const k of tokens) {
+                const translated = await this.segmentAndTranslate(k, from, to);
+                parts.push(translated);
+            }
+            return parts.join(" ");
+        }
+
+        // Single token failed; return empty string to let caller fallback to base parse
+        try {
+            return await tryOnce(text);
+        } catch (_) {
+            return "";
+        }
     }
 
     /**
@@ -785,7 +882,7 @@ class BingTranslator {
             }
         };
 
-        const processResponse = async (response: AxiosResponse<any>): Promise<any> => {
+    const processResponse = async (response: AxiosResponse<any>): Promise<any> => {
             /**
              * Status codes 401 and 429 mean that Bing thinks we are robots. We have to wait for it to calm down.
              */
@@ -822,6 +919,24 @@ class BingTranslator {
              * no statusCode or 200: translated successfully
              * 205: tokens need to be updated
              */
+            // Guard: Sometimes Bing returns HTML (anti-bot) with 200 OK. Detect non-JSON and retry after token refresh.
+            const contentType = (response.headers && (response.headers["content-type"] || response.headers["Content-Type"])) || "";
+            if (typeof response.data === "string") {
+                const body = response.data as string;
+                if (/text\/html/i.test(contentType) || /<html|<!DOCTYPE/i.test(body)) {
+                    if (retry && retryCount < this.MAX_RETRY + 1) {
+                        retryCount++;
+                        await this.updateTokens();
+                        return await requestOnce().then(processResponse);
+                    }
+                    throw {
+                        errorType: "API_ERR",
+                        errorCode: 200,
+                        errorMsg: "Unexpected HTML response from Bing",
+                    };
+                }
+            }
+
             const statusCode = response.data.StatusCode || response.data.statusCode || 200;
             switch (statusCode) {
                 case 200:
@@ -906,7 +1021,7 @@ class BingTranslator {
      *
      * @returns {Promise<Object>} translation Promise
      */
-    async translate(text: string, from: string, to: string) {
+    async translate(text: string, from: string, to: string, _internalNoChunkFallback = false): Promise<TranslationResult> {
         // Quick validation
         if (!text || !text.trim()) {
             return { originalText: text || "", mainMeaning: "" };
@@ -919,6 +1034,8 @@ class BingTranslator {
         if (cached) {
             return cached;
         }
+
+    // No length-based trigger; try direct call first and only then fallback to adaptive segmentation
 
         let transResponse;
         try {
@@ -940,8 +1057,23 @@ class BingTranslator {
             mainMeaning: "",
         });
 
+        // If we failed to parse any translated text, fallback to adaptive segmentation once
+        if (!transResult.mainMeaning && !_internalNoChunkFallback) {
+            try {
+                const joined = await this.segmentAndTranslate(text, from, to);
+                if (joined) {
+                    const segResult = { originalText: text, mainMeaning: joined } as TranslationResult;
+                    this.cache.set(cacheKey, segResult);
+                    return segResult;
+                }
+            } catch (_) {
+                // fall through
+            }
+        }
+
         try {
-            const detectedLanguage = transResponse[0].detectedLanguage.language;
+            const detectedLanguage = transResponse[0]?.detectedLanguage?.language;
+            if (!detectedLanguage) throw new Error("Failed to detect language from response");
             
             // Run lookup and examples in parallel for better performance
             const [lookupResponse, exampleResponse] = await Promise.allSettled([
