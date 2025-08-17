@@ -151,6 +151,14 @@
         "message": "Thank you for using Edge Translate! Click to open options.",
         "description": "Welcome notice (no analytics)."
     },
+    "PrivacyPolicyLink": {
+        "message": "https://github.com/EdgeTranslate/EdgeTranslate/blob/master/docs/wiki/en/PrivacyPolicy.md",
+        "description": "Privacy policy link."
+    },
+    "PrivacyPolicy": {
+        "message": "Privacy Policy",
+        "description": "Privacy Policy"
+    },
     "ExtensionInstalled": {
         "message": "Edge Translate installed successfully! Click to read the wiki!",
         "description": "Inform user that the extension has been installed."
