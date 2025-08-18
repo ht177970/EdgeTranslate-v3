@@ -310,6 +310,9 @@ class TranslatorManager {
         // Result frame closed event.
         this.channel.on("frame_closed", this.stopPronounce.bind(this));
 
+        // Stop pronounce request.
+        this.channel.on("stopPronounce", this.stopPronounce.bind(this));
+
         /**
          * Update config cache on config changed.
          */
@@ -636,6 +639,12 @@ class TranslatorManager {
         if (currentTabId !== -1) {
             this.channel.emitToTabs(currentTabId, "stop_tts", {
                 timestamp: new Date().getTime(),
+            });
+            
+            // TTS 중지 완료 이벤트 즉시 발송
+            this.channel.emitToTabs(currentTabId, "pronouncing_finished", {
+                timestamp: new Date().getTime(),
+                pronouncing: "both" // source와 target 모두 중지
             });
         }
 

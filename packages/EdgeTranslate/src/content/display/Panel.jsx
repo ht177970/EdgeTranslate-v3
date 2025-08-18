@@ -359,6 +359,12 @@ export default function ResultPanel() {
         try {
             if (typeof speechSynthesis !== "undefined") {
                 speechSynthesis.cancel();
+
+                // TTS 중지 완료 이벤트 발송
+                channel.emit("pronouncing_finished", {
+                    pronouncing: "both", // source와 target 모두 중지
+                    timestamp: new Date().getTime(),
+                });
             }
         } catch (error) {
             // TTS 중지 실패는 무시

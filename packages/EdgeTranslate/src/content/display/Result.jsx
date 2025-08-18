@@ -79,6 +79,11 @@ export default function Result(props) {
     const [sourcePronouncing, setSourcePronounce] = useReducer(sourcePronounce, false),
         [targetPronouncing, setTargetPronounce] = useReducer(targetPronounce, false);
 
+    /**
+     * TTS stopping state to prevent multiple stop requests
+     */
+    const [stopping, setStopping] = useState(false);
+
     // Indicate whether user can edit and copy the translation result
     const [copyResult, setCopyResult] = useReducer(copyContent, false);
     const translateResultElRef = useRef();
@@ -116,7 +121,27 @@ export default function Result(props) {
                         <PronounceLine>
                             {displayTPronunciationIcon &&
                                 (targetPronouncing ? (
-                                    <StyledPronounceLoadingIcon />
+                                    <StyledPronounceLoadingIcon
+                                        role="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (stopping) return;
+                                            
+                                            console.log("Target TTS stop clicked");
+                                            setStopping(true);
+                                            // frame_closed 이벤트 직접 발송 (번역창 닫을 때와 동일한 방식)
+                                            channel
+                                                .emit("frame_closed")
+                                                .catch(() => {
+                                                    // 실패 시 조용히 처리
+                                                })
+                                                .finally(() => {
+                                                    setStopping(false);
+                                                });
+                                        }}
+                                        title={chrome.i18n.getMessage("StopPronounce")}
+                                    />
                                 ) : (
                                     <StyledPronounceIcon
                                         role="button"
@@ -180,7 +205,24 @@ export default function Result(props) {
                         <PronounceLine>
                             {displaySPronunciationIcon &&
                                 (sourcePronouncing ? (
-                                    <StyledPronounceLoadingIcon />
+                                    <StyledPronounceLoadingIcon
+                                        role="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (stopping) return;
+                                            
+                                            console.log("Source TTS stop clicked");
+                                            setStopping(true);
+                                            // frame_closed 이벤트 직접 발송 (번역창 닫을 때와 동일한 방식)
+                                            channel.emit("frame_closed").catch(() => {
+                                                // 실패 시 조용히 처리
+                                            }).finally(() => {
+                                                setStopping(false);
+                                            });
+                                        }}
+                                        title={chrome.i18n.getMessage("StopPronounce")}
+                                    />
                                 ) : (
                                     <StyledPronounceIcon
                                         role="button"
@@ -368,7 +410,11 @@ export default function Result(props) {
                         setSourcePronounce(false);
                     } else if (detail.pronouncing === "target") {
                         setTargetPronounce(false);
+                    } else if (detail.pronouncing === "both") {
+                        setSourcePronounce(false);
+                        setTargetPronounce(false);
                     }
+                    setStopping(false);
                 }
             })
         );
@@ -598,10 +644,21 @@ const StyledPronounceLoadingIcon = styled(PronounceLoadingIcon)`
     fill: ${LightPrimary};
     padding: 0;
     flex-shrink: 0;
+    cursor: pointer;
+    transition: fill 0.2s linear;
 
     circle {
         fill: none;
         stroke: ${LightPrimary} !important;
+        transition: stroke 0.2s linear;
+    }
+
+    &:hover {
+        fill: orange !important;
+
+        circle {
+            stroke: orange !important;
+        }
     }
 `;
 

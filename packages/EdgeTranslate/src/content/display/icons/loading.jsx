@@ -17,6 +17,9 @@ export default function Loading(props) {
             height="32px"
             viewBox="0 0 100 100"
             preserveAspectRatio="xMidYMid"
+            onClick={props.onClick}
+            role={props.role}
+            title={props.title}
         >
             <circle
                 cx="50"
