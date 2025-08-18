@@ -3,6 +3,8 @@ export type TranslationResult = {
     mainMeaning: string;
     sPronunciation?: string;
     tPronunciation?: string;
+    sourceLanguage?: string;
+    targetLanguage?: string;
     detailedMeanings?: DetailedMeaning[];
     definitions?: Definition[];
     examples?: Example[];

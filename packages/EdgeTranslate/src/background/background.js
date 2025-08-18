@@ -87,7 +87,7 @@ function isPdfContentType(contentType) {
 function isPotentialPdfUrl(url) {
     // Check if url is a valid string
     if (!url || typeof url !== "string") return false;
-    
+
     // 1. 명확한 .pdf 확장자 (PDF.js 스타일)
     if (/\.pdf($|[?#])/i.test(url)) return true;
 
@@ -141,7 +141,9 @@ try {
             const headers = details.responseHeaders || [];
 
             // Content-Type 헤더 확인 (PDF.js 방식)
-            const contentTypeHeader = headers.find((h) => h && h.name && h.name.toLowerCase() === "content-type");
+            const contentTypeHeader = headers.find(
+                (h) => h && h.name && h.name.toLowerCase() === "content-type"
+            );
             const contentType = contentTypeHeader?.value?.toLowerCase() || "";
 
             // PDF.js 스타일: 더 포괄적인 PDF MIME 타입 체크
@@ -159,7 +161,7 @@ try {
                     try {
                         // URL이 유효한지 다시 확인
                         if (!url || typeof url !== "string") return;
-                        
+
                         const viewerUrl = chrome.runtime.getURL(
                             `web/viewer.html?file=${encodeURIComponent(
                                 url
@@ -235,7 +237,12 @@ try {
 if (typeof window !== "undefined") {
     window.addEventListener("error", (event) => {
         try {
-            if (event && event.error && event.error.message && shouldFilterError(event.error.message)) {
+            if (
+                event &&
+                event.error &&
+                event.error.message &&
+                shouldFilterError(event.error.message)
+            ) {
                 event.preventDefault();
                 return false;
             }
@@ -653,7 +660,7 @@ if (typeof document === "undefined") {
     self.document.getElementById = function (id) {
         // Handle case where id is not a string or is null/undefined
         if (!id || typeof id !== "string") return null;
-        
+
         // Recursively search through all elements for the ID
         function findById(element, targetId) {
             if (!element) return null;
@@ -672,7 +679,7 @@ if (typeof document === "undefined") {
     self.document.querySelector = function (selector) {
         // Handle case where selector is not a string or is null/undefined
         if (!selector || typeof selector !== "string") return null;
-        
+
         // Basic selector support for common cases
         if (selector.startsWith("#")) {
             return self.document.getElementById(selector.slice(1));
@@ -684,7 +691,7 @@ if (typeof document === "undefined") {
     self.document.querySelectorAll = function () {
         return [];
     };
-    
+
     // Add missing document properties
     self.document.location = {
         origin: "chrome-extension://",
@@ -695,20 +702,26 @@ if (typeof document === "undefined") {
         host: "",
         hostname: "",
     };
-    
+
     // Add document methods that might be called
-    self.document.addEventListener = function() {};
-    self.document.removeEventListener = function() {};
-    self.document.createTreeWalker = function() {
+    self.document.addEventListener = function () {};
+    self.document.removeEventListener = function () {};
+    self.document.createTreeWalker = function () {
         return {
-            nextNode: function() { return null; },
-            firstChild: function() { return null; },
-            parentNode: function() { return null; }
+            nextNode() {
+                return null;
+            },
+            firstChild() {
+                return null;
+            },
+            parentNode() {
+                return null;
+            },
         };
     };
-    
+
     // Add toString method to prevent errors
-    self.document.toString = function() {
+    self.document.toString = function () {
         return "[object Document]";
     };
 }

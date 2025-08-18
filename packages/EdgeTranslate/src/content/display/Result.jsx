@@ -14,9 +14,11 @@ import PronounceIcon from "./icons/pronounce.svg";
 import PronounceLoadingIcon from "./icons/loading.jsx";
 import CopyIcon from "./icons/copy.svg";
 
-// TTS speeds
+// TTS speeds and consecutive click tracking
 let sourceTTSSpeed = "fast",
     targetTTSSpeed = "fast";
+let lastClickedButton = null; // "source" or "target"
+let lastClickTime = 0;
 // Communication channel.
 const channel = new Channel();
 const notifier = new Notifier("center");
@@ -352,6 +354,8 @@ export default function Result(props) {
     useEffect(() => {
         sourceTTSSpeed = "fast";
         targetTTSSpeed = "fast";
+        lastClickedButton = null;
+        lastClickTime = 0;
 
         /*
          * COMMUNICATE WITH BACKGROUND MODULE
@@ -734,19 +738,26 @@ const ExampleTarget = styled.div`
  */
 function sourcePronounce(_, startPronounce) {
     if (startPronounce) {
+        const currentTime = Date.now();
+        const timeSinceLastClick = currentTime - lastClickTime;
+
+        // Only toggle speed if same button clicked consecutively within 3 seconds
+        if (lastClickedButton === "source" && timeSinceLastClick < 3000) {
+            sourceTTSSpeed = sourceTTSSpeed === "fast" ? "slow" : "fast";
+        } else {
+            // Reset to fast speed for first click or after switching buttons
+            sourceTTSSpeed = "fast";
+        }
+
+        lastClickedButton = "source";
+        lastClickTime = currentTime;
+
         channel
             .request("pronounce", {
                 pronouncing: "source",
                 text: window.translateResult.originalText,
                 language: window.translateResult.sourceLanguage,
                 speed: sourceTTSSpeed,
-            })
-            .then(() => {
-                if (sourceTTSSpeed === "fast") {
-                    sourceTTSSpeed = "slow";
-                } else {
-                    sourceTTSSpeed = "fast";
-                }
             })
             .catch(() => {
                 // TTS 실패 처리는 조용히
@@ -760,19 +771,26 @@ function sourcePronounce(_, startPronounce) {
  */
 function targetPronounce(_, startPronounce) {
     if (startPronounce) {
+        const currentTime = Date.now();
+        const timeSinceLastClick = currentTime - lastClickTime;
+
+        // Only toggle speed if same button clicked consecutively within 3 seconds
+        if (lastClickedButton === "target" && timeSinceLastClick < 3000) {
+            targetTTSSpeed = targetTTSSpeed === "fast" ? "slow" : "fast";
+        } else {
+            // Reset to fast speed for first click or after switching buttons
+            targetTTSSpeed = "fast";
+        }
+
+        lastClickedButton = "target";
+        lastClickTime = currentTime;
+
         channel
             .request("pronounce", {
                 pronouncing: "target",
                 text: window.translateResult.mainMeaning,
                 language: window.translateResult.targetLanguage,
                 speed: targetTTSSpeed,
-            })
-            .then(() => {
-                if (targetTTSSpeed === "fast") {
-                    targetTTSSpeed = "slow";
-                } else {
-                    targetTTSSpeed = "fast";
-                }
             })
             .catch(() => {
                 // TTS 실패 처리는 조용히

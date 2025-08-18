@@ -521,8 +521,40 @@ class TranslatorManager {
                     result = await promise;
                 }
             }
-            result.sourceLanguage = sl;
+
+            // Ensure language information is always set correctly for TTS
+            let actualSourceLanguage = sl;
+
+            // If source language was auto-detected, get the actual detected language
+            if (sl === "auto") {
+                // First try to use detected language from translation result
+                if (result.sourceLanguage && result.sourceLanguage !== "auto") {
+                    actualSourceLanguage = result.sourceLanguage;
+                } else {
+                    // Fallback: detect the language ourselves
+                    try {
+                        const detected = await this.detect(text);
+                        if (detected && detected !== "auto") {
+                            actualSourceLanguage = detected;
+                        } else {
+                            // Ultimate fallback: assume English for TTS compatibility
+                            actualSourceLanguage = "en";
+                        }
+                    } catch (e) {
+                        // If detection completely fails, assume English
+                        actualSourceLanguage = "en";
+                    }
+                }
+            }
+
+            // Always ensure these fields are set for TTS functionality
+            result.sourceLanguage = actualSourceLanguage;
             result.targetLanguage = tl;
+
+            // Preserve original text for TTS (in case it was modified during segmentation)
+            if (!result.originalText || result.originalText !== text) {
+                result.originalText = text;
+            }
 
             // Send translating result to current tab.
             this.channel.emitToTabs(currentTabId, "translating_finished", {

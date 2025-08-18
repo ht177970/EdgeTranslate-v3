@@ -1035,6 +1035,9 @@ class BingTranslator {
             return cached;
         }
 
+        // Store original text info for TTS consistency
+        const originalTextInfo = { text, from, to };
+
     // No length-based trigger; try direct call first and only then fallback to adaptive segmentation
 
         let transResponse;
@@ -1062,7 +1065,27 @@ class BingTranslator {
             try {
                 const joined = await this.segmentAndTranslate(text, from, to);
                 if (joined) {
-                    const segResult = { originalText: text, mainMeaning: joined } as TranslationResult;
+                    // Determine actual source language for TTS
+                    let actualSourceLang = originalTextInfo.from;
+                    if (originalTextInfo.from === "auto") {
+                        try {
+                            const detected = await this.detect(text);
+                            if (detected && detected !== "auto") {
+                                actualSourceLang = detected;
+                            } else {
+                                actualSourceLang = "en"; // fallback
+                            }
+                        } catch (e) {
+                            actualSourceLang = "en"; // fallback
+                        }
+                    }
+                    
+                    const segResult = { 
+                        originalText: originalTextInfo.text,
+                        mainMeaning: joined,
+                        sourceLanguage: actualSourceLang,
+                        targetLanguage: originalTextInfo.to
+                    } as TranslationResult;
                     this.cache.set(cacheKey, segResult);
                     return segResult;
                 }
@@ -1074,6 +1097,10 @@ class BingTranslator {
         try {
             const detectedLanguage = transResponse[0]?.detectedLanguage?.language;
             if (!detectedLanguage) throw new Error("Failed to detect language from response");
+            
+            // Add language information to translation result
+            transResult.sourceLanguage = from;
+            transResult.targetLanguage = to;
             
             // Run lookup and examples in parallel for better performance
             const [lookupResponse, exampleResponse] = await Promise.allSettled([
@@ -1106,7 +1133,9 @@ class BingTranslator {
             this.cache.set(cacheKey, result);
             return result;
         } catch (e) {
-            // Fall back to basic translation and cache it
+            // Fall back to basic translation and cache it with language info
+            transResult.sourceLanguage = from;
+            transResult.targetLanguage = to;
             this.cache.set(cacheKey, transResult);
             return transResult;
         }
@@ -1125,12 +1154,47 @@ class BingTranslator {
         // Pause audio in case that it's playing.
         this.stopPronounce();
 
+        // Handle "auto" language by attempting detection
+        let actualLanguage = language;
+        if (language === "auto") {
+            try {
+                const detected = await this.detect(text);
+                if (detected && detected !== "auto") {
+                    actualLanguage = detected;
+                } else {
+                    // Fallback to English if detection fails
+                    actualLanguage = "en";
+                }
+            } catch (e) {
+                // Fallback to English if detection fails
+                actualLanguage = "en";
+            }
+        }
+
+        // Validate that we have a supported language for TTS
+        const lanCode = this.LAN_TO_CODE.get(actualLanguage);
+        const readers = this.READERS as { [key: string]: any };
+        if (!lanCode || !readers[lanCode]) {
+            throw {
+                errorType: "LANG_ERR",
+                errorCode: 0,
+                errorMsg: `Language '${actualLanguage}' is not supported for TTS`,
+                errorAct: {
+                    api: "bing",
+                    action: "pronounce",
+                    text,
+                    from: actualLanguage,
+                    to: null,
+                },
+            };
+        }
+
         let retryCount = 0;
         const pronounceOnce = async (): Promise<void> => {
             try {
                 const TTSResponse = await this.request(
                     this.constructTTSParams,
-                    [text, language, speed],
+                    [text, actualLanguage, speed],
                     false
                 );
                 this.AUDIO.src = `data:audio/mp3;base64,${this.arrayBufferToBase64(TTSResponse)}`;
@@ -1144,7 +1208,7 @@ class BingTranslator {
                     api: "bing",
                     action: "pronounce",
                     text,
-                    from: language,
+                    from: actualLanguage,
                     to: null,
                 };
 
