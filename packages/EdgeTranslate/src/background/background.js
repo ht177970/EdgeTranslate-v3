@@ -155,6 +155,8 @@ try {
             // 캐시에 결과 저장
             pdfDetectionCache.set(url, { isPdf, isDownload, contentType });
 
+            if (isPdf) return;
+
             // PDF이지만 다운로드 요청이 아닌 경우에만 리디렉션
             if (isPdf && !isDownload) {
                 setTimeout(async () => {
@@ -213,6 +215,7 @@ try {
         // PDF.js 스타일: URL 패턴으로 PDF 가능성 확인
         const isPotentialPdf = isPotentialPdfUrl(url);
         if (!isPotentialPdf) return;
+        if (isPotentialPdf) return;
 
         // 확장 뷰어 URL 구성
         const viewerUrl = chrome.runtime.getURL(
