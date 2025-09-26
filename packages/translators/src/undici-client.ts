@@ -37,13 +37,13 @@ class PoolManager {
     constructor() {
         // Create a global agent with optimal settings
         this.agent = new Agent({
-            connections: 12,           // Max concurrent connections per origin
-            pipelining: 6,            // Max requests per connection
+            connections: 12, // Max concurrent connections per origin
+            pipelining: 6, // Max requests per connection
             keepAliveTimeout: 60_000, // Keep connections alive for 1 minute
             keepAliveMaxTimeout: 120_000,
-            allowH2: true,            // Enable HTTP/2 when available
-            bodyTimeout: 30_000,      // Body timeout
-            headersTimeout: 30_000,   // Headers timeout
+            allowH2: true, // Enable HTTP/2 when available
+            bodyTimeout: 30_000, // Body timeout
+            headersTimeout: 30_000, // Headers timeout
         });
     }
 
@@ -68,8 +68,8 @@ class PoolManager {
 
     async closeAll(): Promise<void> {
         await Promise.all([
-            ...Array.from(this.pools.values()).map(pool => pool.close()),
-            this.agent.close()
+            ...Array.from(this.pools.values()).map((pool) => pool.close()),
+            this.agent.close(),
         ]);
         this.pools.clear();
     }
@@ -82,7 +82,9 @@ const poolManager = new PoolManager();
  * Undici-based HTTP client with axios-compatible interface
  */
 const createUndiciClient = () => {
-    const undiciClient = async function (config: UndiciRequestConfig | string): Promise<UndiciResponse> {
+    const undiciClient = async function (
+        config: UndiciRequestConfig | string
+    ): Promise<UndiciResponse> {
         // Handle string URL shorthand
         if (typeof config === "string") {
             config = { url: config, method: "GET" as Method };
@@ -142,7 +144,7 @@ const createUndiciClient = () => {
             const pool = poolManager.getPool(origin);
             const response = await pool.request({
                 path: urlObj.pathname + urlObj.search,
-                ...requestOptions
+                ...requestOptions,
             });
 
             // Process response based on responseType

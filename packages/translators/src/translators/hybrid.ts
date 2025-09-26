@@ -11,10 +11,7 @@ import GoogleTranslator from "./google";
 import { LRUCache } from "../utils/lru";
 import { fnv1a32 } from "../utils/hash";
 
-export type HybridSupportedTranslators =
-    | "BingTranslate"
-    | "DeepLTranslate"
-    | "GoogleTranslate";
+export type HybridSupportedTranslators = "BingTranslate" | "DeepLTranslate" | "GoogleTranslate";
 
 export type HybridConfig = {
     selections: Selections;
@@ -47,7 +44,7 @@ class HybridTranslator {
     private stats = {
         requests: 0,
         cacheHits: 0,
-        errors: 0
+        errors: 0,
     };
 
     constructor(config: HybridConfig, channel: any) {
@@ -86,7 +83,7 @@ class HybridTranslator {
             this.REAL_TRANSLATORS.BingTranslate.warmUp().catch(() => {
                 // Ignore warmup failures
             });
-            
+
             // Google translator doesn't have a warmUp method, so we skip it
         }, 100); // Small delay to not block constructor
     }
@@ -119,7 +116,9 @@ class HybridTranslator {
      */
     getAvailableTranslatorsFor(from: string, to: string) {
         const translators: HybridSupportedTranslators[] = [];
-        for (const translator of Object.keys(this.REAL_TRANSLATORS) as HybridSupportedTranslators[]) {
+        for (const translator of Object.keys(
+            this.REAL_TRANSLATORS
+        ) as HybridSupportedTranslators[]) {
             const languages = this.REAL_TRANSLATORS[translator].supportedLanguages();
             if (languages.has(from) && languages.has(to)) {
                 translators.push(translator);
@@ -211,7 +210,7 @@ class HybridTranslator {
         // Create cache key and check for cached result
         const cacheKey = `${from}|${to}|${text.toLowerCase().trim()}`;
         const cached = this.cache.get(cacheKey);
-        
+
         if (cached) {
             this.stats.cacheHits++;
             return cached;
@@ -224,7 +223,10 @@ class HybridTranslator {
             requests.push(
                 this.REAL_TRANSLATORS[translator]
                     .translate(text, from, to)
-                    .then((result) => [translator, result] as [HybridSupportedTranslators, TranslationResult])
+                    .then(
+                        (result) =>
+                            [translator, result] as [HybridSupportedTranslators, TranslationResult]
+                    )
             );
         }
 
@@ -234,14 +236,14 @@ class HybridTranslator {
             mainMeaning: "",
         };
         const results = new Map(await Promise.all(requests));
-        
+
         // Process each component with fallback support
         let item: keyof Selections;
         for (item in this.CONFIG.selections) {
             try {
                 const selectedTranslator = this.CONFIG.selections[item];
                 const selectedResult = results.get(selectedTranslator)!;
-                
+
                 // Check if the selected translator provided the component
                 if (selectedResult[item] && this.hasValue(selectedResult[item])) {
                     // Use the value from the selected translator
@@ -271,10 +273,10 @@ class HybridTranslator {
                 console.log(error);
             }
         }
-        
+
         // Fill passthrough originalText if empty
         if (!translation.originalText) translation.originalText = text;
-        
+
         // Cache the final result
         this.cache.set(cacheKey, translation);
         return translation;
@@ -371,10 +373,11 @@ class HybridTranslator {
             cacheSize: cacheStats.size,
             maxCacheSize: cacheStats.maxSize,
             cacheTTL: cacheStats.ttl,
-            hitRate: this.stats.requests > 0 
-                ? (this.stats.cacheHits / this.stats.requests * 100).toFixed(1) + '%'
-                : '0%',
-            inflight: this.inflight.size
+            hitRate:
+                this.stats.requests > 0
+                    ? ((this.stats.cacheHits / this.stats.requests) * 100).toFixed(1) + "%"
+                    : "0%",
+            inflight: this.inflight.size,
         };
 
         // Get Bing translator stats if available
@@ -401,15 +404,15 @@ class HybridTranslator {
 
     /**
      * Check if a value has meaningful content.
-     * 
+     *
      * @param value The value to check
      * @returns true if the value has meaningful content, false otherwise
      */
     private hasValue(value: any): boolean {
         if (value === null || value === undefined) return false;
-        if (typeof value === 'string') return value.trim().length > 0;
+        if (typeof value === "string") return value.trim().length > 0;
         if (Array.isArray(value)) return value.length > 0;
-        if (typeof value === 'object') {
+        if (typeof value === "object") {
             // For objects, check if they have any enumerable properties
             return Object.keys(value).length > 0;
         }

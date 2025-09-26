@@ -30,7 +30,9 @@ interface ServiceWorkerAxiosResponse<T = any> {
  * Service Worker environment axios replacement function
  */
 const createServiceWorkerAxios = (): AxiosInstance => {
-    const axiosReplacement = function (config: ServiceWorkerAxiosRequestConfig | string): Promise<ServiceWorkerAxiosResponse> {
+    const axiosReplacement = function (
+        config: ServiceWorkerAxiosRequestConfig | string
+    ): Promise<ServiceWorkerAxiosResponse> {
         // Handle string URL shorthand
         if (typeof config === "string") {
             config = { url: config, method: "GET" as Method };
@@ -126,7 +128,7 @@ const createServiceWorkerAxios = (): AxiosInstance => {
                     // Convert headers to plain object
                     const headersObj: any = {};
                     const headersIterable = response.headers as any;
-                    if (headersIterable && typeof headersIterable.forEach === 'function') {
+                    if (headersIterable && typeof headersIterable.forEach === "function") {
                         headersIterable.forEach((value: string, key: string) => {
                             headersObj[key] = value;
                         });
@@ -142,7 +144,9 @@ const createServiceWorkerAxios = (): AxiosInstance => {
                     };
 
                     if (!validateStatus(response.status)) {
-                        const error = new Error(`Request failed with status ${response.status}`) as any;
+                        const error = new Error(
+                            `Request failed with status ${response.status}`
+                        ) as any;
                         error.config = config;
                         error.response = axiosResponse;
                         error.code = response.status >= 500 ? "ECONNABORTED" : "ERR_BAD_REQUEST";
@@ -183,12 +187,21 @@ const createServiceWorkerAxios = (): AxiosInstance => {
     // Add HTTP method shortcuts
     axiosReplacement.get = (url: string, config: ServiceWorkerAxiosRequestConfig = {}) =>
         axiosReplacement({ ...config, url, method: "GET" as Method });
-    axiosReplacement.post = (url: string, data?: any, config: ServiceWorkerAxiosRequestConfig = {}) =>
-        axiosReplacement({ ...config, url, data, method: "POST" as Method });
-    axiosReplacement.put = (url: string, data?: any, config: ServiceWorkerAxiosRequestConfig = {}) =>
-        axiosReplacement({ ...config, url, data, method: "PUT" as Method });
-    axiosReplacement.patch = (url: string, data?: any, config: ServiceWorkerAxiosRequestConfig = {}) =>
-        axiosReplacement({ ...config, url, data, method: "PATCH" as Method });
+    axiosReplacement.post = (
+        url: string,
+        data?: any,
+        config: ServiceWorkerAxiosRequestConfig = {}
+    ) => axiosReplacement({ ...config, url, data, method: "POST" as Method });
+    axiosReplacement.put = (
+        url: string,
+        data?: any,
+        config: ServiceWorkerAxiosRequestConfig = {}
+    ) => axiosReplacement({ ...config, url, data, method: "PUT" as Method });
+    axiosReplacement.patch = (
+        url: string,
+        data?: any,
+        config: ServiceWorkerAxiosRequestConfig = {}
+    ) => axiosReplacement({ ...config, url, data, method: "PATCH" as Method });
     axiosReplacement.delete = (url: string, config: ServiceWorkerAxiosRequestConfig = {}) =>
         axiosReplacement({ ...config, url, method: "DELETE" as Method });
     axiosReplacement.head = (url: string, config: ServiceWorkerAxiosRequestConfig = {}) =>
@@ -200,23 +213,23 @@ const createServiceWorkerAxios = (): AxiosInstance => {
     axiosReplacement.defaults = {
         headers: {
             common: {
-                "Connection": "keep-alive",
-                "Keep-Alive": "timeout=30, max=100"
+                Connection: "keep-alive",
+                "Keep-Alive": "timeout=30, max=100",
             },
             get: {
-                "Accept": "application/json, text/plain, */*"
+                Accept: "application/json, text/plain, */*",
             },
-            post: { 
+            post: {
                 "Content-Type": "application/json",
-                "Accept": "application/json, text/plain, */*"
+                Accept: "application/json, text/plain, */*",
             },
-            put: { 
+            put: {
                 "Content-Type": "application/json",
-                "Accept": "application/json, text/plain, */*"
+                Accept: "application/json, text/plain, */*",
             },
-            patch: { 
+            patch: {
                 "Content-Type": "application/json",
-                "Accept": "application/json, text/plain, */*"
+                Accept: "application/json, text/plain, */*",
             },
         },
         // Optimized timeout for better performance

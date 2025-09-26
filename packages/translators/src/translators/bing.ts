@@ -21,10 +21,10 @@ class BingTranslator {
     constructor() {
         // Initialize simple cache for immediate use
         this.cache = new LRUCache<string, TranslationResult>({ max: 100, ttl: 10 * 60 * 1000 });
-        
+
         // Try to load cached tokens first
         this.loadCachedTokens();
-        
+
         // Start lightweight background warmup
         setTimeout(() => this.warmUp().catch(() => {}), 0);
     }
@@ -76,7 +76,6 @@ class BingTranslator {
      */
     MAX_RETRY = 1;
 
-
     /**
      * Translate API host.
      */
@@ -91,14 +90,15 @@ class BingTranslator {
      * Optimized request headers
      */
     HEADERS = {
-        "accept": "application/json, text/plain, */*",
+        accept: "application/json, text/plain, */*",
         "accept-language": "en-US,en;q=0.9,ko;q=0.8,zh-CN;q=0.7,zh;q=0.6",
         "content-type": "application/x-www-form-urlencoded",
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+        "user-agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
         "accept-encoding": "gzip, deflate, br",
         "cache-control": "no-cache",
-        "origin": "https://www.bing.com",
-        "referer": "https://www.bing.com/translator",
+        origin: "https://www.bing.com",
+        referer: "https://www.bing.com/translator",
         "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": '"macOS"',
@@ -307,13 +307,13 @@ class BingTranslator {
      */
     private loadCachedTokens(): boolean {
         try {
-            if (typeof localStorage === 'undefined') return false;
-            
-            const cached = localStorage.getItem('bing_translator_tokens');
+            if (typeof localStorage === "undefined") return false;
+
+            const cached = localStorage.getItem("bing_translator_tokens");
             if (!cached) return false;
-            
+
             const { IG, token, key, IID, HOST, timestamp } = JSON.parse(cached);
-            
+
             // Check if tokens are still valid (30 minutes TTL)
             if (Date.now() - timestamp < 30 * 60 * 1000) {
                 this.IG = IG;
@@ -326,7 +326,7 @@ class BingTranslator {
                 return true;
             } else {
                 // Remove expired cache
-                localStorage.removeItem('bing_translator_tokens');
+                localStorage.removeItem("bing_translator_tokens");
             }
         } catch (error) {
             // Ignore cache errors
@@ -339,18 +339,18 @@ class BingTranslator {
      */
     private cacheTokens(): void {
         try {
-            if (typeof localStorage === 'undefined') return;
-            
+            if (typeof localStorage === "undefined") return;
+
             const tokenData = {
                 IG: this.IG,
                 token: this.token,
                 key: this.key,
                 IID: this.IID,
                 HOST: this.HOST,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             };
-            
-            localStorage.setItem('bing_translator_tokens', JSON.stringify(tokenData));
+
+            localStorage.setItem("bing_translator_tokens", JSON.stringify(tokenData));
         } catch (error) {
             // Ignore cache errors
         }
@@ -364,13 +364,13 @@ class BingTranslator {
         if (this.tokensInitiated || this.warmupInProgress) {
             return;
         }
-        
+
         this.warmupInProgress = true;
         try {
             await this.updateTokens();
         } catch (error) {
             // Ignore warmup failures - we'll try again on actual request
-            console.debug('Bing translator warmup failed:', error);
+            console.debug("Bing translator warmup failed:", error);
         } finally {
             this.warmupInProgress = false;
         }
@@ -411,7 +411,7 @@ class BingTranslator {
 
         // Reset request count.
         this.count = 0;
-        
+
         // Cache tokens for future use
         this.cacheTokens();
     }
@@ -458,7 +458,9 @@ class BingTranslator {
         try {
             const r = await tryOnce(text);
             if (r) return r;
-        } catch (_) { /* proceed to split */ }
+        } catch (_) {
+            /* proceed to split */
+        }
 
         // Split to paragraphs
         const paragraphs = text.split(/\n{2,}/).filter((p) => p.length > 0);
@@ -553,7 +555,7 @@ class BingTranslator {
 
             const detailedMeanings = [];
             const definitions = [];
-            
+
             for (const i in translations) {
                 const synonyms = [];
                 for (const j in translations[i].backTranslations) {
@@ -580,12 +582,12 @@ class BingTranslator {
             }
 
             parsed.detailedMeanings = detailedMeanings;
-            
+
             // Only add definitions if we have any
             if (definitions.length > 0) {
                 parsed.definitions = definitions;
             }
-            
+
             // Extract additional examples if available in the root response
             if (result[0].examples && result[0].examples.length > 0) {
                 const examples = [];
@@ -862,27 +864,27 @@ class BingTranslator {
         const timeSinceLastRequest = now - this.lastRequestTime;
         if (timeSinceLastRequest < this.REQUEST_DELAY && this.count > 5) {
             const waitTime = this.REQUEST_DELAY - timeSinceLastRequest;
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
         this.lastRequestTime = Date.now();
 
         let retryCount = 0;
         const requestOnce = async (): Promise<any> => {
             this.count++;
-            
+
             try {
                 const response = (await httpClient({
                     timeout: 8000,
                     ...constructParams.call(this, ...constructParamsArgs),
                 })) as AxiosResponse<any>;
-                
+
                 return response;
             } catch (error: any) {
                 throw error;
             }
         };
 
-    const processResponse = async (response: AxiosResponse<any>): Promise<any> => {
+        const processResponse = async (response: AxiosResponse<any>): Promise<any> => {
             /**
              * Status codes 401 and 429 mean that Bing thinks we are robots. We have to wait for it to calm down.
              */
@@ -920,7 +922,10 @@ class BingTranslator {
              * 205: tokens need to be updated
              */
             // Guard: Sometimes Bing returns HTML (anti-bot) with 200 OK. Detect non-JSON and retry after token refresh.
-            const contentType = (response.headers && (response.headers["content-type"] || response.headers["Content-Type"])) || "";
+            const contentType =
+                (response.headers &&
+                    (response.headers["content-type"] || response.headers["Content-Type"])) ||
+                "";
             if (typeof response.data === "string") {
                 const body = response.data as string;
                 if (/text\/html/i.test(contentType) || /<html|<!DOCTYPE/i.test(body)) {
@@ -1021,16 +1026,21 @@ class BingTranslator {
      *
      * @returns {Promise<Object>} translation Promise
      */
-    async translate(text: string, from: string, to: string, _internalNoChunkFallback = false): Promise<TranslationResult> {
+    async translate(
+        text: string,
+        from: string,
+        to: string,
+        _internalNoChunkFallback = false
+    ): Promise<TranslationResult> {
         // Quick validation
         if (!text || !text.trim()) {
             return { originalText: text || "", mainMeaning: "" };
         }
-        
+
         // Check cache first
         const cacheKey = `${from}|${to}|${text.toLowerCase().trim()}`;
         const cached = this.cache.get(cacheKey);
-        
+
         if (cached) {
             return cached;
         }
@@ -1038,7 +1048,7 @@ class BingTranslator {
         // Store original text info for TTS consistency
         const originalTextInfo = { text, from, to };
 
-    // No length-based trigger; try direct call first and only then fallback to adaptive segmentation
+        // No length-based trigger; try direct call first and only then fallback to adaptive segmentation
 
         let transResponse;
         try {
@@ -1079,12 +1089,12 @@ class BingTranslator {
                             actualSourceLang = "en"; // fallback
                         }
                     }
-                    
-                    const segResult = { 
+
+                    const segResult = {
                         originalText: originalTextInfo.text,
                         mainMeaning: joined,
                         sourceLanguage: actualSourceLang,
-                        targetLanguage: originalTextInfo.to
+                        targetLanguage: originalTextInfo.to,
                     } as TranslationResult;
                     this.cache.set(cacheKey, segResult);
                     return segResult;
@@ -1097,38 +1107,38 @@ class BingTranslator {
         try {
             const detectedLanguage = transResponse[0]?.detectedLanguage?.language;
             if (!detectedLanguage) throw new Error("Failed to detect language from response");
-            
+
             // Add language information to translation result
             transResult.sourceLanguage = from;
             transResult.targetLanguage = to;
-            
+
             // Run lookup and examples in parallel for better performance
             const [lookupResponse, exampleResponse] = await Promise.allSettled([
-                this.request(
-                    this.constructLookupParams,
-                    [text, detectedLanguage, to],
-                    false
-                ).then(response => ({ type: 'lookup', response })),
+                this.request(this.constructLookupParams, [text, detectedLanguage, to], false).then(
+                    (response) => ({ type: "lookup", response })
+                ),
                 // Only request examples if we have a main meaning to work with
-                transResult.mainMeaning ? this.request(
-                    this.constructExampleParams,
-                    [detectedLanguage, to, text, transResult.mainMeaning],
-                    false
-                ).then(response => ({ type: 'example', response })) : Promise.reject('No main meaning')
+                transResult.mainMeaning
+                    ? this.request(
+                          this.constructExampleParams,
+                          [detectedLanguage, to, text, transResult.mainMeaning],
+                          false
+                      ).then((response) => ({ type: "example", response }))
+                    : Promise.reject("No main meaning"),
             ]);
 
             let result = transResult;
-            
+
             // Apply lookup result if successful
-            if (lookupResponse.status === 'fulfilled') {
+            if (lookupResponse.status === "fulfilled") {
                 result = this.parseLookupResult(lookupResponse.value.response, result);
             }
-            
+
             // Apply example result if successful
-            if (exampleResponse.status === 'fulfilled') {
+            if (exampleResponse.status === "fulfilled") {
                 result = this.parseExampleResult(exampleResponse.value.response, result);
             }
-            
+
             // Cache the final result
             this.cache.set(cacheKey, result);
             return result;
