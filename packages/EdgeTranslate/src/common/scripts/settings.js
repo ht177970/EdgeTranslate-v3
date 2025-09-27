@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS = {
         TranslateAfterSelect: false,
         CancelTextSelection: false,
         UseGoogleAnalytics: false,
+        PdfViewer: true,
     },
     DefaultTranslator: "GoogleTranslate",
     DefaultPageTranslator: "GooglePageTranslate",

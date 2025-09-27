@@ -12,7 +12,11 @@ import { promiseTabs } from "common/scripts/promise.js";
 import Channel from "common/scripts/channel.js";
 // map language abbreviation from browser languages to translation languages
 import { BROWSER_LANGUAGES_MAP } from "common/scripts/languages.js";
-import { DEFAULT_SETTINGS, setDefaultSettings } from "common/scripts/settings.js";
+import {
+    DEFAULT_SETTINGS,
+    setDefaultSettings,
+    getOrSetDefaultSettings,
+} from "common/scripts/settings.js";
 
 /**
  * Service Worker 오류 필터링 - 알려진 오류 패턴들을 차단
@@ -130,12 +134,22 @@ function isPotentialPdfUrl(url) {
  */
 try {
     chrome.webRequest.onHeadersReceived.addListener(
-        (details) => {
+        async (details) => {
             // main_frame만 처리
             if (details.frameId !== 0) return;
 
             // URL이 유효한지 확인
             if (!details.url || typeof details.url !== "string") return;
+
+            try {
+                const settings = await getOrSetDefaultSettings("OtherSettings", DEFAULT_SETTINGS);
+                const usePdfViewer =
+                    settings.OtherSettings?.PdfViewer ?? DEFAULT_SETTINGS.OtherSettings.PdfViewer;
+
+                if (!usePdfViewer) {
+                    return;
+                }
+            } catch (err) {}
 
             const url = details.url;
             const headers = details.responseHeaders || [];
@@ -154,8 +168,6 @@ try {
 
             // 캐시에 결과 저장
             pdfDetectionCache.set(url, { isPdf, isDownload, contentType });
-
-            if (isPdf) return;
 
             // PDF이지만 다운로드 요청이 아닌 경우에만 리디렉션
             if (isPdf && !isDownload) {
@@ -199,6 +211,16 @@ try {
         const url = details.url;
         if (!/^https?:|^file:|^ftp:/i.test(url)) return;
 
+        try {
+            const settings = await getOrSetDefaultSettings("OtherSettings", DEFAULT_SETTINGS);
+            const usePdfViewer =
+                settings.OtherSettings?.PdfViewer ?? DEFAULT_SETTINGS.OtherSettings.PdfViewer;
+
+            if (!usePdfViewer) {
+                return;
+            }
+        } catch (err) {}
+
         // 이미 webRequest에서 처리되었다면 결과 확인
         const cachedResult = pdfDetectionCache.get(url);
         if (cachedResult) {
@@ -215,7 +237,6 @@ try {
         // PDF.js 스타일: URL 패턴으로 PDF 가능성 확인
         const isPotentialPdf = isPotentialPdfUrl(url);
         if (!isPotentialPdf) return;
-        if (isPotentialPdf) return;
 
         // 확장 뷰어 URL 구성
         const viewerUrl = chrome.runtime.getURL(
