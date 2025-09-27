@@ -2,15 +2,9 @@
 
 檢視其他語言版本：
 - [English](../README.md)
-- [简体中文](./README_CN.md)
 - [繁體中文](./README_TW.md)
-- [日本語](./README_JA.md)
-- [한국어](./README_KO.md)
 
-本專案是 Edge Translate 的分支，已依照 Manifest V3 全面重構，並符合現行瀏覽器政策與建置流程。原始 MV2 版本因政策下架後，本專案現代化了程式碼與建置，以延續相同的使用體驗並提升穩定性。
-
-- 原始倉庫：[EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)
-- 目前倉庫：[Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3)
+本專案是基於 [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3) 的分支，此分支主要是為了還原pdf設定，以便使用者能夠自行選擇pdf頁面是否跳轉至本插件的pdf瀏覽器。
 
 ### 主要功能
 - 選取翻譯與側邊彈窗：結果以側邊面板呈現，不中斷閱讀流程。可自訂顯示項（常用釋義、發音、定義/詳解、例句等），並可釘選面板。
@@ -21,8 +15,7 @@
 - 文字轉語音（TTS）：優先選用更高品質的語音，朗讀更自然。
 
 ### 下載
-- [Chrome 應用商店](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
-- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+- [GitHub Releases](https://github.com/ht177970/EdgeTranslate-v3/releases)
 
 ### 瀏覽器支援與限制
 - Chrome：選取翻譯、PDF 檢視器、整頁翻譯
@@ -44,6 +37,14 @@ Firefox（臨時載入）
 
 Safari（macOS）
 1）透過 Xcode 專案執行（需同步資源，見開發/建置）
+
+### 首次建置
+
+1) 安裝相依套件
+```
+cd packages/translators
+npm install
+```
 
 ### 開發 / 建置
 工作目錄：`packages/EdgeTranslate`
@@ -84,8 +85,6 @@ npm run safari:release
 
 ### 主機權限
 為實現常駐內容指令碼（如選取翻譯）需要全域主機權限。Chrome 使用 `host_permissions: ["*://*/*"]`；Firefox/Safari 則透過 `<all_urls>` 匹配的內容指令碼實現。擴充功能遵循最小權限原則。
-
- 
 
 ### 文件
 - 原始專案文件（功能總覽參考）：

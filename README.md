@@ -1,15 +1,10 @@
 ## EdgeTranslate-v3 (MV3)
 
-A fork of Edge Translate refactored for Manifest V3, modern build tooling, and current browser policies. After the original MV2-based version was removed from stores, this project modernizes the code and build to preserve the same user experience with improved stability.
-
-- Original repo: [EdgeTranslate/EdgeTranslate](https://github.com/EdgeTranslate/EdgeTranslate)
-- Current repo: [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3)
+This repository is based on [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3), which refactored Edge Translate for Manifest V3.
+In this fork, additional work is being done to add PDF-related settings and improve compatibility with built-in and extension-based PDF viewers.
 
 View this page in other languages:
-- [简体中文](./docs/README_CN.md)
 - [繁體中文](./docs/README_TW.md)
-- [日本語](./docs/README_JA.md)
-- [한국어](./docs/README_KO.md)
 
 ### Key Features
 - Selection translation with side popup: Shows results in a side panel so your reading flow isn’t interrupted. You can customize visible sections (common meanings, pronunciation, definitions/detailed explanations, examples, etc.) and pin the panel.
@@ -20,8 +15,7 @@ View this page in other languages:
 - Text-to-Speech (TTS): Prefers higher-quality voices for more natural reading.
 
 ### Downloads
-- [Chrome Web Store](https://chromewebstore.google.com/detail/edge-translate/pljeedmkegkcfkgdicjnalbllhifnnnj)
-- [GitHub Releases](https://github.com/Meapri/EdgeTranslate-v3/releases)
+- [GitHub Releases](https://github.com/ht177970/EdgeTranslate-v3/releases)
 
 ### Browser Support and Limits
 - Chrome: Selection translation, PDF viewer, full-page translation
@@ -43,6 +37,14 @@ Firefox (Temporary Load)
 
 Safari (macOS)
 1) Run via the Xcode project with synchronized resources (see Development/Build)
+
+### First build
+
+1) Install dependencies
+```
+cd packages/translators
+npm install
+```
 
 ### Development / Build
 Working directory: `packages/EdgeTranslate`
@@ -83,8 +85,6 @@ Build outputs
 
 ### Host Permissions
 Global host permissions are required for always-on content scripts (selection translation, etc.). Chrome uses `host_permissions: ["*://*/*"]`; Firefox/Safari use `<all_urls>`-matched content scripts. The extension adheres to a minimal-permissions approach.
-
- 
 
 ### Documentation
 - Original project docs (general feature reference):
