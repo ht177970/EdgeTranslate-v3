@@ -227,6 +227,10 @@
         "message": "選択して翻訳を有効にする",
         "description": "選択して翻訳を有効または無効にします。"
     },
+    "PdfViewer": {
+        "message": "内蔵のPDFビューアを使用する",
+        "description": "PDFファイルを翻訳できるようにするには、拡張機能に内蔵のPDFビューアを使用します。"
+    },
     "TranslateAfterSelect": {
         "message": "選択した後に翻訳する",
         "description": "テキストを選択した後、翻訳結果を即座に表示します。"

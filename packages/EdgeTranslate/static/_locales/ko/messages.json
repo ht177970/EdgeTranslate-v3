@@ -64,6 +64,10 @@
 
     "OtherSettings": { "message": "기타 설정", "description": "기타 설정" },
     "SelectTranslate": { "message": "드래그 번역 사용", "description": "선택 번역 사용" },
+    "PdfViewer": {
+        "message": "Use Built-in PDF Viewer",
+        "description": "Use extension's built-in pdf viewer to enable selecting translate in pdf files."
+    },
     "TranslateAfterSelect": { "message": "선택 즉시 번역", "description": "선택 후 즉시 표시" },
     "TranslateAfterDblClick": { "message": "더블클릭 즉시 번역", "description": "더블클릭 후 즉시 표시" },
     "CancelTextSelection": { "message": "번역 후 선택 해제", "description": "번역 후 선택 해제" },
